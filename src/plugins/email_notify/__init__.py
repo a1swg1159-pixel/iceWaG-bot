@@ -97,7 +97,9 @@ def fetch_new_emails(email_addr: str, auth_code: str, last_uid: int) -> tuple[in
         return last_uid, []
 
     try:
-        conn.select("INBOX", readonly=True)
+        sel_status, _ = conn.select("INBOX")
+        if sel_status != "OK":
+            return last_uid, []
 
         # 搜索 UID 大于 last_uid 的邮件
         search_criteria = f"UID {last_uid + 1}:*"
@@ -215,8 +217,13 @@ async def handle_email(event: MessageEvent, args=CommandArg()):
         if not conn:
             await email_cmd.finish("连接失败...地址或授权码不对喵。")
         try:
-            conn.select("INBOX", readonly=True)
-            status, data = conn.uid("SEARCH", None, "ALL")
+            sel_status, sel_data = conn.select("INBOX")
+            if sel_status != "OK":
+                detail = str(sel_data[0]) if sel_data else "无详细信息"
+                await email_cmd.finish(f"无法访问收件箱喵... 服务器返回: {detail}")
+            search_status, data = conn.uid("SEARCH", None, "ALL")
+            if search_status != "OK":
+                await email_cmd.finish("邮箱验证失败...再试一次喵？")
             all_uids = data[0].split() if data and data[0] else []
             last_uid = int(all_uids[-1]) if all_uids else 0
         finally:
