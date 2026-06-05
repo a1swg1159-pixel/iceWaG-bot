@@ -5,8 +5,25 @@ from typing import List
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from nonebot import get_bots, get_driver
-from nonebot.adapters.onebot.v11 import Bot
+from nonebot.adapters.onebot.v11 import Bot, GroupMessageEvent
 from nonebot.log import logger
+from nonebot.rule import Rule
+
+
+# ====== 群聊 @规则：@了别人就不响应 ======
+
+async def _not_at_others(event: GroupMessageEvent) -> bool:
+    """如果消息 @ 了别人（非 bot 自己），则不响应"""
+    msg = event.get_message()
+    for seg in msg:
+        if seg.type == "at":
+            qq = str(seg.data.get("qq", ""))
+            if qq and qq != str(event.self_id):
+                return False
+    return True
+
+
+no_at_others = Rule(_not_at_others)
 
 
 # ====== 随机延迟（防风控） ======

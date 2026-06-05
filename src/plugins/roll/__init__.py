@@ -4,10 +4,10 @@ from nonebot import on_command
 from nonebot.adapters.onebot.v11 import MessageEvent, MessageSegment
 from nonebot.params import CommandArg
 
-from src.common import random_delay as rdelay
+from src.common import no_at_others, random_delay as rdelay
 
 
-roll_cmd = on_command("roll", priority=10, block=True)
+roll_cmd = on_command("roll", priority=10, block=True, rule=no_at_others)
 
 
 @roll_cmd.handle()

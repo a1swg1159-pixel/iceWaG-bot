@@ -5,7 +5,7 @@ from nonebot import on_message
 from nonebot.adapters.onebot.v11 import GroupMessageEvent, MessageSegment
 from nonebot.rule import Rule
 
-from src.common import random_delay as rdelay
+from src.common import no_at_others, random_delay as rdelay
 
 
 # 猫娘图片 API 源（按优先级排列，先国内可达、后备用）
@@ -56,7 +56,7 @@ async def only_at_bot(event: GroupMessageEvent) -> bool:
     return True
 
 
-random_face = on_message(Rule(only_at_bot), priority=20, block=False)
+random_face = on_message(Rule(only_at_bot) & no_at_others, priority=20, block=False)
 
 
 @random_face.handle()

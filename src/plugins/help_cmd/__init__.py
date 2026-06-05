@@ -1,6 +1,6 @@
 from nonebot import on_command
 
-from src.common import random_delay
+from src.common import no_at_others, random_delay
 
 
 HELP_TEXT = (
@@ -18,7 +18,7 @@ HELP_TEXT = (
     "💡 戳我的话...可不会理你喵。"
 )
 
-help_cmd = on_command("help", aliases={"帮助"}, priority=10, block=True)
+help_cmd = on_command("help", aliases={"帮助"}, priority=10, block=True, rule=no_at_others)
 
 
 @help_cmd.handle()
