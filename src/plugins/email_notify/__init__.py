@@ -1,4 +1,4 @@
-"""邮件通知插件 —— 绑定邮箱，定时检查新邮件，群+私聊通知"""
+"""邮件通知插件 —— 绑定邮箱，定时检查未读新邮件，群+私聊通知"""
 
 import email as email_parser
 import imaplib
@@ -8,11 +8,10 @@ from email.header import decode_header
 from pathlib import Path
 
 from nonebot import on_command
-from nonebot.adapters.onebot.v11 import Bot, GroupMessageEvent, MessageEvent, MessageSegment
+from nonebot.adapters.onebot.v11 import Bot, MessageEvent, MessageSegment
 from nonebot.log import logger
 from nonebot.params import CommandArg
 
-from src.common import push_to_groups, random_delay as rdelay
 from src.common import scheduler, get_target_groups
 
 DATA_DIR = Path("data")
@@ -28,16 +27,15 @@ IMAP_SERVERS = {
     "gmail.com": ("imap.gmail.com", 993),
     "outlook.com": ("imap.outlook.com", 993),
     "hotmail.com": ("imap.outlook.com", 993),
-    "mails.tsinghua.edu.cn": ("mails.tsinghua.edu.cn", 993),  # 清华学生邮箱
+    "mails.tsinghua.edu.cn": ("mails.tsinghua.edu.cn", 993),
 }
 
-CHECK_INTERVAL_MINUTES = 30
+CHECK_INTERVAL_MINUTES = 5
 
 
 # ====== 数据读写 ======
 
 def _domain(email_addr: str) -> str:
-    """提取域名"""
     return email_addr.rsplit("@", 1)[-1].lower()
 
 
@@ -60,7 +58,6 @@ def save_bindings(data: dict) -> None:
 # ====== IMAP 工具 ======
 
 def _decode_mime_words(raw: str) -> str:
-    """解码 MIME 编码的标题/发件人"""
     parts = decode_header(raw or "")
     result = ""
     for text, charset in parts:
@@ -75,7 +72,6 @@ def _decode_mime_words(raw: str) -> str:
 
 
 def connect_imap(email_addr: str, auth_code: str) -> imaplib.IMAP4_SSL | None:
-    """连接并登录 IMAP，失败返回 None"""
     domain = _domain(email_addr)
     server_info = IMAP_SERVERS.get(domain)
     if not server_info:
@@ -90,31 +86,31 @@ def connect_imap(email_addr: str, auth_code: str) -> imaplib.IMAP4_SSL | None:
         return None
 
 
-def fetch_new_emails(email_addr: str, auth_code: str, last_uid: int) -> tuple[int, list[dict]]:
-    """获取指定邮箱中 UID > last_uid 的新邮件，返回 (最新UID, 邮件列表)"""
+def fetch_unseen_emails(email_addr: str, auth_code: str, since_date: str) -> list[dict]:
+    """获取指定日期之后的未读邮件，查完后标记为已读"""
     conn = connect_imap(email_addr, auth_code)
     if not conn:
-        return last_uid, []
+        return []
 
     try:
         sel_status, _ = conn.select("INBOX")
         if sel_status != "OK":
-            return last_uid, []
+            return []
 
-        # 搜索 UID 大于 last_uid 的邮件
-        search_criteria = f"UID {last_uid + 1}:*"
+        # 未读 + 时间过滤: 只查上次检查之后到达的邮件
+        search_criteria = f'(UNSEEN SINCE "{since_date}")'
         status, data = conn.uid("SEARCH", None, search_criteria)
         if status != "OK":
-            return last_uid, []
+            return []
 
         uid_strs = data[0].split()
         if not uid_strs:
-            return last_uid, []
+            return []
 
-        new_uids = [int(uid) for uid in uid_strs]
+        uids = [int(uid) for uid in uid_strs]
         emails = []
 
-        for uid in new_uids:
+        for uid in uids:
             status, msg_data = conn.uid("FETCH", str(uid).encode(), "(BODY.PEEK[HEADER])")
             if status != "OK" or not msg_data or not msg_data[0]:
                 continue
@@ -128,24 +124,25 @@ def fetch_new_emails(email_addr: str, auth_code: str, last_uid: int) -> tuple[in
             sender = _decode_mime_words(msg.get("From", "未知发件人"))
             date_str = msg.get("Date", "")
 
-            # 只取前 3 行，去掉多余内容
-            body_preview = "（无正文预览）"
-
             emails.append({
                 "uid": uid,
                 "subject": subject,
                 "sender": sender,
                 "date": date_str,
-                "preview": body_preview,
             })
 
-        # 返回最新的 UID
-        max_uid = max(new_uids) if emails else last_uid
-        return max_uid, emails
+        # 标记为已读，确保下次不会重复推送
+        for uid in uids:
+            try:
+                conn.uid("STORE", str(uid).encode(), "+FLAGS", "(\\Seen)")
+            except Exception:
+                pass
+
+        return emails
 
     except Exception as e:
         logger.warning(f"Error fetching emails for {email_addr}: {e}")
-        return last_uid, []
+        return []
     finally:
         try:
             conn.logout()
@@ -156,7 +153,6 @@ def fetch_new_emails(email_addr: str, auth_code: str, last_uid: int) -> tuple[in
 # ====== 群成员检查 ======
 
 async def get_user_groups(bot: Bot, user_id: int) -> list[int]:
-    """获取用户所在且属于 DAILY_PUSH_GROUPS 的群号列表"""
     target_groups = get_target_groups()
     if not target_groups:
         return []
@@ -217,15 +213,9 @@ async def handle_email(event: MessageEvent, args=CommandArg()):
         if not conn:
             await email_cmd.finish("连接失败...地址或授权码不对喵。")
         try:
-            sel_status, sel_data = conn.select("INBOX")
+            sel_status, _ = conn.select("INBOX")
             if sel_status != "OK":
-                detail = str(sel_data[0]) if sel_data else "无详细信息"
-                await email_cmd.finish(f"无法访问收件箱喵... 服务器返回: {detail}")
-            search_status, data = conn.uid("SEARCH", None, "ALL")
-            if search_status != "OK":
-                await email_cmd.finish("邮箱验证失败...再试一次喵？")
-            all_uids = data[0].split() if data and data[0] else []
-            last_uid = int(all_uids[-1]) if all_uids else 0
+                await email_cmd.finish("无法访问收件箱...这个邮箱是不是没有开启 IMAP 服务喵？")
         finally:
             try:
                 conn.logout()
@@ -236,7 +226,7 @@ async def handle_email(event: MessageEvent, args=CommandArg()):
             bindings[user_id] = {}
         bindings[user_id][addr] = {
             "auth_code": code,
-            "last_uid": last_uid,
+            "last_check_time": datetime.now(timezone.utc).isoformat(),
         }
         save_bindings(bindings)
         await email_cmd.finish(f"绑好了...{addr}，新邮件会通知你喵。")
@@ -272,7 +262,7 @@ async def handle_email(event: MessageEvent, args=CommandArg()):
 
 @scheduler.scheduled_job("interval", minutes=CHECK_INTERVAL_MINUTES, misfire_grace_time=120)
 async def check_emails():
-    """每 30 分钟检查所有绑定邮箱的新邮件"""
+    """每 30 分钟检查所有绑定邮箱的未读邮件"""
     bindings = load_bindings()
     if not bindings:
         return
@@ -289,20 +279,25 @@ async def check_emails():
 
         for addr, info in email_dict.items():
             auth_code = info.get("auth_code", "")
-            last_uid = info.get("last_uid", 0)
-
+            last_check = info.get("last_check_time", "2020-01-01T00:00:00+00:00")
             if not auth_code:
                 continue
 
-            new_last_uid, emails = fetch_new_emails(addr, auth_code, last_uid)
+            try:
+                since_date = datetime.fromisoformat(last_check).strftime("%d-%b-%Y")
+            except Exception:
+                since_date = "01-Jan-2020"
+
+            emails = fetch_unseen_emails(addr, auth_code, since_date)
+
+            # 更新检查时间
+            now_ts = datetime.now(timezone.utc).isoformat()
+            bindings[user_id_str][addr]["last_check_time"] = now_ts
+            save_bindings(bindings)
 
             if emails:
-                # 更新 last_uid
-                bindings[user_id_str][addr]["last_uid"] = new_last_uid
-                save_bindings(bindings)
-
                 count = len(emails)
-                logger.info(f"New email: {count} for {addr} (UID {new_last_uid})")
+                logger.info(f"New email: {count} for {addr}")
 
                 # ---- 群通知 ----
                 group_ids = await get_user_groups(bot, user_id)
@@ -323,8 +318,6 @@ async def check_emails():
                     lines.append(f"📨 {mail['subject']}")
                     lines.append(f"   发件人: {mail['sender']}")
                     lines.append(f"   时间: {mail['date']}")
-                    if count == 1:
-                        lines.append(f"   预览: {mail['preview']}")
                     lines.append("")
                 lines.append("哼...才不是特意通知你的喵。")
 
@@ -333,8 +326,3 @@ async def check_emails():
                     await bot.send_private_msg(user_id=user_id, message=private_msg)
                 except Exception as e:
                     logger.warning(f"Failed to send private notif to {user_id}: {e}")
-
-            elif new_last_uid > last_uid:
-                # UID 有更新但没有新邮件（可能被删了），只更新 last_uid
-                bindings[user_id_str][addr]["last_uid"] = new_last_uid
-                save_bindings(bindings)

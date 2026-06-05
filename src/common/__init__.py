@@ -1,4 +1,5 @@
 import asyncio
+import os
 import random
 from typing import List
 
@@ -37,8 +38,8 @@ async def _shutdown_scheduler():
 # ====== 定时推送辅助 ======
 
 def get_target_groups() -> List[int]:
-    """从 .env 的 DAILY_PUSH_GROUPS 读取推送目标群号列表"""
-    raw = getattr(driver.config, "daily_push_groups", "")
+    """从环境变量 DAILY_PUSH_GROUPS 读取推送目标群号列表"""
+    raw = os.environ.get("DAILY_PUSH_GROUPS", "")
     if not raw:
         logger.warning("DAILY_PUSH_GROUPS is empty, skip daily push")
         return []

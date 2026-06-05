@@ -110,6 +110,21 @@ docker compose down            # 完全停止
 | `/每日新闻` | 获取今日头条热榜（带链接） | `src/plugins/daily_news/` |
 | `/email`（私聊） | 绑定邮箱，新邮件通知 | `src/plugins/email_notify/` |
 
+#### 📧 邮件通知
+
+| 子命令 | 功能 |
+|---|---|
+| `/email bind <地址> <授权码>` | 绑定邮箱（自动识别 QQ/163/Gmail/清华等 IMAP 服务器） |
+| `/email unbind <地址>` | 解绑邮箱 |
+| `/email list` | 查看已绑定的邮箱 |
+
+- ⏱ 每 **5 分钟**检查一次未读邮件
+- 🔒 绑定操作**仅限私聊**，避免授权码泄露
+- 📬 新邮件在群聊 @提醒 + 私聊发送详细内容
+- 🛡 查完自动标已读 + 时间过滤，同一封不会推两次
+- 💡 授权码在邮箱设置里获取，**不是登录密码**（QQ 邮箱：设置 → 账户 → POP3/IMAP → 生成授权码）
+- 支持邮箱：QQ、Foxmail、163、126、Yeah、Gmail、Outlook、Hotmail、清华学生邮箱
+
 ### 定时推送
 
 | 推送时间 | 内容 | 插件路径 |
@@ -180,6 +195,7 @@ bot/
 ├── data/                   # 持久化数据（Docker 挂载）
 │   ├── fortune_data.json   # 运势缓存（按 用户ID_日期 存储）
 │   ├── b30_tokens.json     # 用户 Token 存档
+│   ├── email_bindings.json # 邮箱绑定及授权码
 │   ├── b30_outputs/        # 成绩图片输出（>1 小时自动清理）
 │   └── b30_assets/bg.png   # 成绩图背景
 │
@@ -234,6 +250,8 @@ Host qq-bot
 | 定时推送时间不对 | 同上，重建容器 `docker compose up -d --force-recreate` |
 | WebSocket 连接失败 | 检查 `.env` 和 NapCat 配置中的 Token 是否一致 |
 | `/chu` 相关指令报错 | 检查 Token 是否已绑定 (`/chu b30bind`) 且未过期 |
+| 邮件绑定提示连接失败 | 检查授权码是否正确（不是登录密码），IMAP 服务是否已在邮箱设置中开启 |
+| 邮件通知群里收不到 | 检查 `DAILY_PUSH_GROUPS` 是否配置，用户是否在对应群里 |
 
 ---
 
@@ -241,4 +259,3 @@ Host qq-bot
 
 - [ ] Chunithm Recent 最近战绩查询
 - [ ] 分数线计算器
-- [ ] NapCat 掉线自动通知
