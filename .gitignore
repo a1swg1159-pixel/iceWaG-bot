@@ -22,3 +22,4 @@ data/fortune_outputs/
 # 运行时数据（含用户隐私）
 data/b30_tokens.json
 data/fortune_data.json
+data/email_bindings.json

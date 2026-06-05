@@ -108,6 +108,7 @@ docker compose down            # 完全停止
 | `/每日运势` | 查看今日运势（同日同人不变化，带分数条） | `src/plugins/fortune/` |
 | `/每日天气` | 查询指定城市今日天气 | `src/plugins/daily_weather/` |
 | `/每日新闻` | 获取今日头条热榜（带链接） | `src/plugins/daily_news/` |
+| `/email`（私聊） | 绑定邮箱，新邮件通知 | `src/plugins/email_notify/` |
 
 ### 定时推送
 
@@ -170,6 +171,7 @@ bot/
 │       ├── fortune/        # 每日运势
 │       ├── daily_weather/  # 每日天气（指令 + 定时推送）
 │       ├── daily_news/     # 每日新闻（指令 + 定时推送）
+│       ├── email_notify/   # 邮件通知
 │       ├── reload_cmd/     # 热重启
 │       └── chunithm_b30/   # Chunithm 成绩查询
 │           ├── __init__.py # 指令处理
