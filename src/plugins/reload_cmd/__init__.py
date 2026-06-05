@@ -7,7 +7,7 @@ from pathlib import Path
 from nonebot import on_command, get_driver
 from nonebot.adapters.onebot.v11 import Bot, MessageEvent, MessageSegment
 
-from src.common import no_at_others, random_delay
+from src.common import at_me_only, random_delay
 
 ADMIN_USER = getattr(get_driver().config, "admin_qq", "")
 # 在 .env 中设置 ADMIN_QQ=你的QQ号
@@ -47,7 +47,7 @@ async def on_reload_complete(bot: Bot):
 
 # ====== /reload 命令 ======
 
-reload_cmd = on_command("reload", priority=10, block=True, rule=no_at_others)
+reload_cmd = on_command("reload", priority=10, block=True, rule=at_me_only)
 
 
 @reload_cmd.handle()

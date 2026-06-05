@@ -10,20 +10,14 @@ from nonebot.log import logger
 from nonebot.rule import Rule
 
 
-# ====== 群聊 @规则：@了别人就不响应 ======
+# ====== 群聊 @规则：只有 @了 bot 才响应 ======
 
-async def _not_at_others(event: GroupMessageEvent) -> bool:
-    """如果消息 @ 了别人（非 bot 自己），则不响应"""
-    msg = event.get_message()
-    for seg in msg:
-        if seg.type == "at":
-            qq = str(seg.data.get("qq", ""))
-            if qq and qq != str(event.self_id):
-                return False
-    return True
+async def _at_me_only(event: GroupMessageEvent) -> bool:
+    """只响应 @了本 bot 的消息"""
+    return event.is_tome()
 
 
-no_at_others = Rule(_not_at_others)
+at_me_only = Rule(_at_me_only)
 
 
 # ====== 随机延迟（防风控） ======

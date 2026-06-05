@@ -5,7 +5,7 @@ from nonebot import get_driver, on_command
 from nonebot.adapters.onebot.v11 import MessageEvent, MessageSegment
 from nonebot.log import logger
 
-from src.common import no_at_others, push_to_groups, random_delay as rdelay
+from src.common import at_me_only, push_to_groups, random_delay as rdelay
 from src.common import scheduler
 
 # ====== 配置 ======
@@ -90,7 +90,7 @@ async def fetch_weather(city: str) -> str | None:
 
 # ====== 指令 ======
 
-weather_cmd = on_command("每日天气", priority=10, block=True, rule=no_at_others)
+weather_cmd = on_command("每日天气", priority=10, block=True, rule=at_me_only)
 
 
 @weather_cmd.handle()

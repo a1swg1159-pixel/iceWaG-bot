@@ -2,7 +2,7 @@ from nonebot import on_message
 from nonebot.adapters.onebot.v11 import MessageEvent, MessageSegment
 from nonebot.rule import Rule
 
-from src.common import no_at_others, random_delay
+from src.common import at_me_only, random_delay
 
 
 async def is_unknown_command(event: MessageEvent) -> bool:
@@ -19,7 +19,7 @@ async def is_unknown_command(event: MessageEvent) -> bool:
 
 
 unknown_cmd = on_message(
-    Rule(is_unknown_command) & no_at_others,
+    Rule(is_unknown_command) & at_me_only,
     priority=99,   # 最低优先级，确保其他指令先匹配
     block=False,   # 不阻塞，万一有后续处理器
 )

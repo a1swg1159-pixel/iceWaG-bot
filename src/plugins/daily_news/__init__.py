@@ -5,7 +5,7 @@ from nonebot import on_command
 from nonebot.adapters.onebot.v11 import MessageEvent, MessageSegment
 from nonebot.log import logger
 
-from src.common import no_at_others, push_to_groups, random_delay as rdelay
+from src.common import at_me_only, push_to_groups, random_delay as rdelay
 from src.common import scheduler
 
 
@@ -68,7 +68,7 @@ async def fetch_toutiao_hot(count: int = NEWS_COUNT) -> str | None:
 
 # ====== 指令 ======
 
-news_cmd = on_command("每日新闻", priority=10, block=True, rule=no_at_others)
+news_cmd = on_command("每日新闻", priority=10, block=True, rule=at_me_only)
 
 
 @news_cmd.handle()
