@@ -1,0 +1,37 @@
+services:
+  # ====== QQ 协议端 ======
+  napcat:
+    image: mlikiowa/napcat-appimage:latest
+    container_name: napcat
+    restart: always
+    command:
+      - /bin/bash
+      - -c
+      - trap '' SIGPIPE && rm -f /tmp/.X99-lock && /app/napcat.AppImage --appimage-extract-and-run --no-sandbox
+    environment:
+      - TZ=Asia/Shanghai
+      - NAPCAT_UID=0
+      - NAPCAT_GID=0
+      - ELECTRON_NO_SANDBOX=1
+    ports:
+      - "6099:6099"   # WebUI（扫码/配置）
+    user: "0:0"
+    volumes:
+      - ./napcat/QQ:/app/.config/QQ           # QQ 登录态持久化
+      - ./napcat/config:/app/config              # OneBot 配置
+      - ./napcat/logs:/app/logs               # 日志
+      - ./data:/app/data                      # 图片共享
+
+  # ====== Bot ======
+  bot:
+    build: .
+    container_name: qq-bot
+    restart: always
+    ports:
+      - "8081:8081"
+    environment:
+      - TZ=Asia/Shanghai
+    volumes:
+      - ./data:/app/data   # 持久化数据（b30 tokens 等）
+    env_file:
+      - .env

@@ -1,0 +1,15 @@
+# 不需要打入镜像的
+venv/
+__pycache__/
+*.pyc
+.git/
+NapCat/
+test_local/
+.env
+start_all.bat
+README.md
+
+# 运行时挂载卷（不进镜像）
+napcat/QQ/
+napcat/config/
+data/
