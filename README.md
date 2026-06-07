@@ -110,6 +110,20 @@ docker compose down            # 完全停止
 | `/每日新闻` | 获取今日头条热榜（带链接） | `src/plugins/daily_news/` |
 | `/email`（私聊） | 绑定邮箱，新邮件通知 | `src/plugins/email_notify/` |
 
+### 🎮 小游戏
+
+| 指令 | 功能 | 插件路径 |
+|---|---|---|
+| `/签到` | 每日签到 +100 猫猫币 | `src/plugins/games/` |
+| `/猫猫币` | 查看余额和累计收益 | `src/plugins/games/` |
+| `/二十一点 <押注>` | 二十一点（Blackjack），赢 2x，黑杰克 2.5x | `src/plugins/games/` |
+| `/老虎机 <押注>` | 老虎机，两连 2x，三连 15x | `src/plugins/games/` |
+
+- 💰 新用户送 500 猫猫币
+- 🃏 二十一点支持 `/要牌` `/停牌` 互动操作
+- 🎰 老虎机一局定胜负，精简短平快
+- ⚠️ 需 `@bot` 触发，克制消费喵
+
 #### 📧 邮件通知
 
 | 子命令 | 功能 |
@@ -142,7 +156,9 @@ docker compose down            # 完全停止
 
 ### 🎵 Chunithm 中二节奏（`/chu`）
 
-基于 [lxns.net](https://maimai.lxns.net) API，支持成绩查询与图片生成。
+基于 [lxns.net](https://maimai.lxns.net) API，支持成绩查询与高清图片生成。
+
+**视觉风格：** 玻璃拟态 + 霓虹发光边框 + 景深背景 + AchieveNum 数字贴图 + Russo One / New Rodin Pro 游戏字体，3000px 超高清画布。
 
 | 子命令 | 功能 |
 |---|---|
@@ -187,17 +203,23 @@ bot/
 │       ├── daily_weather/  # 每日天气（指令 + 定时推送）
 │       ├── daily_news/     # 每日新闻（指令 + 定时推送）
 │       ├── email_notify/   # 邮件通知
+│       ├── games/          # 小游戏（二十一点/老虎机/猫猫币）
 │       ├── reload_cmd/     # 热重启
 │       └── chunithm_b30/   # Chunithm 成绩查询
 │           ├── __init__.py # 指令处理
 │           └── b30_core.py # 图片生成核心逻辑
 │
 ├── data/                   # 持久化数据（Docker 挂载）
+│   ├── coins.json          # 猫猫币余额
 │   ├── fortune_data.json   # 运势缓存（按 用户ID_日期 存储）
 │   ├── b30_tokens.json     # 用户 Token 存档
 │   ├── email_bindings.json # 邮箱绑定及授权码
 │   ├── b30_outputs/        # 成绩图片输出（>1 小时自动清理）
-│   └── b30_assets/bg.png   # 成绩图背景
+│   └── b30_assets/         # 成绩图资源
+│       ├── bg.png          # 背景图
+│       ├── font/           # 游戏字体（New Rodin / M+ 1p / Russo One）
+│       ├── AchieveNum/     # 分数数字贴图
+│       └── RatingNum/      # Rating 彩数字贴图
 │
 ├── napcat/                 # 运行时生成（Docker 挂载，不提交）
 │   ├── QQ/                 # QQ 登录态
@@ -252,6 +274,7 @@ Host qq-bot
 | `/chu` 相关指令报错 | 检查 Token 是否已绑定 (`/chu b30bind`) 且未过期 |
 | 邮件绑定提示连接失败 | 检查授权码是否正确（不是登录密码），IMAP 服务是否已在邮箱设置中开启 |
 | 邮件通知群里收不到 | 检查 `DAILY_PUSH_GROUPS` 是否配置，用户是否在对应群里 |
+| 二十一点/老虎机没反应 | 需要 `@bot` 触发指令，如 `@bot /二十一点 100` |
 
 ---
 
@@ -259,3 +282,4 @@ Host qq-bot
 
 - [ ] Chunithm Recent 最近战绩查询
 - [ ] 分数线计算器
+- [ ] 更多小游戏（俄罗斯轮盘、猜数字等）

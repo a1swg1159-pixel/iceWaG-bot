@@ -5,15 +5,17 @@ from typing import List
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from nonebot import get_bots, get_driver
-from nonebot.adapters.onebot.v11 import Bot, GroupMessageEvent
+from nonebot.adapters.onebot.v11 import Bot, MessageEvent
 from nonebot.log import logger
 from nonebot.rule import Rule
 
 
-# ====== 群聊 @规则：只有 @了 bot 才响应 ======
+# ====== 群聊 @规则：只有 @了 bot 才响应（私聊不受限） ======
 
-async def _at_me_only(event: GroupMessageEvent) -> bool:
-    """只响应 @了本 bot 的消息"""
+async def _at_me_only(event: MessageEvent) -> bool:
+    """私聊直接通过，群聊只有 @了本 bot 才响应"""
+    if event.message_type == "private":
+        return True
     return event.is_tome()
 
 
