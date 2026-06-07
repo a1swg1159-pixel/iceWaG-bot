@@ -5,10 +5,10 @@ from datetime import datetime
 from nonebot import on_command
 from nonebot.adapters.onebot.v11 import MessageEvent, MessageSegment
 
-from src.common import at_me_only, random_delay as rdelay
+from src.common import at_me_only, main_group_only, random_delay as rdelay
 
 
-time_cmd = on_command("time", priority=10, block=True, rule=at_me_only)
+time_cmd = on_command("time", priority=10, block=True, rule=main_group_only & at_me_only)
 
 
 @time_cmd.handle()

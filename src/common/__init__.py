@@ -5,9 +5,16 @@ from typing import List
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from nonebot import get_bots, get_driver
-from nonebot.adapters.onebot.v11 import Bot, MessageEvent
+from nonebot.adapters.onebot.v11 import Bot, GroupMessageEvent, MessageEvent
 from nonebot.log import logger
 from nonebot.rule import Rule
+
+
+# ====== 主群判断 ======
+
+def is_main_group(group_id: int) -> bool:
+    """检查群是否在 DAILY_PUSH_GROUPS 中"""
+    return group_id in get_target_groups()
 
 
 # ====== 群聊 @规则：只有 @了 bot 才响应（私聊不受限） ======
@@ -20,6 +27,14 @@ async def _at_me_only(event: MessageEvent) -> bool:
 
 
 at_me_only = Rule(_at_me_only)
+
+
+async def _main_group_only(event: GroupMessageEvent) -> bool:
+    """只允许主群（DAILY_PUSH_GROUPS）使用功能"""
+    return is_main_group(event.group_id)
+
+
+main_group_only = Rule(_main_group_only)
 
 
 # ====== 随机延迟（防风控） ======

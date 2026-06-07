@@ -6,7 +6,7 @@ from pathlib import Path
 from nonebot import on_command
 from nonebot.adapters.onebot.v11 import MessageEvent, MessageSegment
 
-from src.common import at_me_only, random_delay
+from src.common import at_me_only, main_group_only, random_delay
 
 
 # ========== 运势分段 ==========
@@ -67,7 +67,7 @@ def get_today_fortune(user_id: str) -> int:
 
 # ========== 指令 ==========
 
-fortune_cmd = on_command("每日运势", priority=10, block=True, rule=at_me_only)
+fortune_cmd = on_command("每日运势", priority=10, block=True, rule=main_group_only & at_me_only)
 
 
 @fortune_cmd.handle()

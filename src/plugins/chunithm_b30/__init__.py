@@ -7,7 +7,7 @@ from nonebot import on_command
 from nonebot.adapters.onebot.v11 import MessageEvent, MessageSegment
 from nonebot.params import CommandArg
 
-from src.common import at_me_only, random_delay
+from src.common import at_me_only, main_group_only, random_delay
 from .b30_core import generate_b30_image, generate_b50_image, generate_fu_image, generate_push_score_image
 
 
@@ -32,7 +32,7 @@ def save_tokens(data: Dict[str, str]) -> None:
     )
 
 
-chu_cmd = on_command("chu", priority=10, block=True, rule=at_me_only)
+chu_cmd = on_command("chu", priority=10, block=True, rule=main_group_only & at_me_only)
 
 
 @chu_cmd.handle()

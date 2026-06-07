@@ -1,9 +1,9 @@
 from nonebot import on_command
 
-from src.common import at_me_only, random_delay
+from src.common import at_me_only, main_group_only, random_delay
 
 
-ping_cmd = on_command("ping", priority=10, block=True, rule=at_me_only)
+ping_cmd = on_command("ping", priority=10, block=True, rule=main_group_only & at_me_only)
 
 
 @ping_cmd.handle()

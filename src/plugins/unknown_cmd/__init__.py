@@ -2,7 +2,7 @@ from nonebot import on_message
 from nonebot.adapters.onebot.v11 import MessageEvent, MessageSegment
 from nonebot.rule import Rule
 
-from src.common import at_me_only, random_delay
+from src.common import at_me_only, main_group_only, random_delay
 
 
 async def is_unknown_command(event: MessageEvent) -> bool:
