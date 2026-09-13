@@ -14,7 +14,7 @@ from .b30_core import (
 )
 from .oauth import (
     create_authorization_url, exchange_authorization_code, get_access_token,
-    has_oauth_binding, remove_oauth_binding,
+    has_oauth_binding, remove_oauth_binding, PUBLIC_CLIENT_ID,
 )
 
 
@@ -31,7 +31,7 @@ def _config_value(name: str) -> str:
 
 def _oauth_config() -> Tuple[str, str]:
     return (
-        _config_value("LXNS_OAUTH_CLIENT_ID"),
+        _config_value("LXNS_OAUTH_CLIENT_ID") or PUBLIC_CLIENT_ID,
         _config_value("LXNS_OAUTH_CLIENT_SECRET"),
     )
 
@@ -95,7 +95,7 @@ async def handle_chu(event: MessageEvent, args=CommandArg()):
             )
             await chu_cmd.finish(
                 MessageSegment.at(event.get_user_id())
-                + "\n请打开下面的 LXNS 授权链接，只授权读取玩家数据：\n"
+                + "\n请打开下面的 LXNS 授权链接，授权读取和更新玩家数据：\n"
                 + url
                 + "\n授权完成后，把页面显示的授权码发给我：/chu bind <授权码>"
             )

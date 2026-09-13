@@ -17,7 +17,8 @@ import requests
 AUTHORIZE_URL = "https://maimai.lxns.net/oauth/authorize"
 TOKEN_URL = "https://maimai.lxns.net/api/v0/oauth/token"
 OOB_REDIRECT_URI = "urn:ietf:wg:oauth:2.0:oob"
-DEFAULT_SCOPE = "read_user_profile read_player"
+PUBLIC_CLIENT_ID = "9a6be364-2c97-4773-89ec-8c7d04fcbd41"
+DEFAULT_SCOPE = "read_user_profile read_player write_player"
 TOKENS_FILE = Path("data") / "b30_oauth_tokens.json"
 PENDING_FILE = Path("data") / "b30_oauth_pending.json"
 PENDING_TTL_SECONDS = 15 * 60
@@ -102,13 +103,15 @@ def _token_error(response: requests.Response) -> str:
     )
 
 
-def _save_token_response(user_id: str, payload: Dict[str, Any]) -> None:
+def _save_token_response(
+    user_id: str, payload: Dict[str, Any], fallback_scope: str = DEFAULT_SCOPE,
+) -> None:
     expires_in = max(60, int(payload.get("expires_in", 900)))
     item = {
         "access_token": str(payload["access_token"]),
         "refresh_token": str(payload["refresh_token"]),
         "token_type": str(payload.get("token_type", "Bearer")),
-        "scope": str(payload.get("scope", "read_player")),
+        "scope": str(payload.get("scope") or fallback_scope),
         "expires_at": time.time() + expires_in,
     }
     tokens = _read_json(TOKENS_FILE)
@@ -154,9 +157,17 @@ def exchange_authorization_code(
         except Exception:
             return None, "LXNS 返回的令牌数据不完整"
 
-        scope = str(token_data.get("scope", ""))
-        if scope and "read_player" not in scope.split():
-            return None, "授权缺少 read_player 权限"
+        # Per OAuth 2.0 the token response may omit scope when it is identical
+        # to the authorization request.
+        scope = str(token_data.get("scope") or DEFAULT_SCOPE)
+        token_data["scope"] = scope
+        granted_scopes = set(scope.split())
+        missing_scopes = {
+            required for required in ("read_player", "write_player")
+            if required not in granted_scopes
+        }
+        if missing_scopes:
+            return None, "授权缺少 " + "、".join(sorted(missing_scopes)) + " 权限"
         _save_token_response(str(user_id), token_data)
         pending.pop(str(user_id), None)
         _write_json(PENDING_FILE, pending)
@@ -199,13 +210,22 @@ def get_access_token(
                 raise KeyError("token")
         except Exception:
             return None, "LXNS 返回的刷新数据不完整"
-        _save_token_response(str(user_id), token_data)
+        _save_token_response(
+            str(user_id), token_data, str(item.get("scope") or DEFAULT_SCOPE)
+        )
         return f"Bearer {token_data['access_token']}", ""
 
 
 def has_oauth_binding(user_id: str) -> bool:
     with _STORE_LOCK:
         return str(user_id) in _read_json(TOKENS_FILE)
+
+
+def has_oauth_scope(user_id: str, scope: str) -> bool:
+    """Return whether a stored user grant contains the requested OAuth scope."""
+    with _STORE_LOCK:
+        item = _read_json(TOKENS_FILE).get(str(user_id), {})
+        return scope in str(item.get("scope", "")).split()
 
 
 def remove_oauth_binding(user_id: str) -> bool:
