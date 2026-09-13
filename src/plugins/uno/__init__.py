@@ -7,10 +7,17 @@ from pathlib import Path
 from typing import Optional
 
 from nonebot import get_bots, on_command, on_message
-from nonebot.adapters.onebot.v11 import Bot, GroupMessageEvent, MessageSegment
+from nonebot.adapters.onebot.v11 import (
+    Bot,
+    GroupMessageEvent,
+    MessageEvent,
+    MessageSegment,
+    PrivateMessageEvent,
+)
 from nonebot.params import CommandArg
 from nonebot.rule import Rule
 
+from src.common import get_target_groups, is_main_group, main_group_only
 from src.common import random_delay as rdelay
 
 DATA_FILE = Path("data") / "uno_games.json"
@@ -149,13 +156,17 @@ UNO_HELP = (
 
 # ====== 指令 ======
 
-uno_cmd = on_command("uno", aliases={"UNO"}, priority=10, block=True)
+uno_cmd = on_command(
+    "uno", aliases={"UNO"}, priority=10, block=True, rule=main_group_only,
+)
 
 # 检测群聊中纯文本 UNO（喊牌）不需要 @bot
 async def _is_uno_call(event: GroupMessageEvent) -> bool:
     return event.get_plaintext().strip().upper() == "UNO"
 
-uno_call = on_message(Rule(_is_uno_call), priority=30, block=True)
+uno_call = on_message(
+    main_group_only & Rule(_is_uno_call), priority=30, block=True,
+)
 
 
 @uno_call.handle()
@@ -223,17 +234,28 @@ def _next_player_skip(game: dict, skip: int) -> str:
     return order[(idx + step) % len(order)]
 
 
-# 单独注册 /出 和 /过 (群聊+私聊)
-from nonebot.adapters.onebot.v11 import PrivateMessageEvent
+# 单独注册 /出 和 /过（群聊仅主群；私聊仅能操作主群牌局）
 
-play_cmd = on_command("出", priority=10, block=True)
-pass_cmd = on_command("过", priority=10, block=True)
+
+async def _uno_scope(event: MessageEvent) -> bool:
+    if isinstance(event, GroupMessageEvent):
+        return is_main_group(event.group_id)
+    return isinstance(event, PrivateMessageEvent)
+
+
+uno_scope = Rule(_uno_scope)
+
+play_cmd = on_command("出", priority=10, block=True, rule=uno_scope)
+pass_cmd = on_command("过", priority=10, block=True, rule=uno_scope)
 
 
 def _find_user_game(uid: str) -> tuple | None:
-    """查找用户所在的 UNO 游戏，返回 (gid, game) 或 None"""
+    """在允许的群中查找用户牌局，返回 (gid, game) 或 None。"""
+    allowed_groups = {str(group_id) for group_id in get_target_groups()}
     games = _load_games()
     for gid, game in games.items():
+        if gid not in allowed_groups:
+            continue
         if game.get("status") != "playing":
             continue
         if uid in game.get("hands", game.get("players", {})):

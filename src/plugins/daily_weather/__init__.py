@@ -44,7 +44,7 @@ def _icon(desc: str) -> str:
 # ====== API 调用 ======
 
 async def fetch_weather(city: str) -> str | None:
-    """从 wttr.in 获取指定城市天气，成功返回格式化文本，失败返回 None"""
+    """从 wttr.in 获取指定城市全天天气预报，成功返回格式化文本，失败返回 None"""
     url = WEATHER_API.format(city)
     try:
         async with httpx.AsyncClient(timeout=httpx.Timeout(10.0)) as client:
@@ -55,32 +55,43 @@ async def fetch_weather(city: str) -> str | None:
 
             data = resp.json()
 
-            # 当前天气
-            cur = (data.get("current_condition") or [{}])[0]
-            temp = cur.get("temp_C", "?")
-            feels = cur.get("FeelsLikeC", temp)
-            desc = (cur.get("weatherDesc") or [{}])[0].get("value", "未知")
-            humidity = cur.get("humidity", "?")
-            wind_speed = cur.get("windspeedKmph", "?")
-            wind_dir = cur.get("winddir16Point", "")
-
-            # 今日预报
+            # 今日概况
             today = (data.get("weather") or [{}])[0]
             high = today.get("maxtempC", "?")
             low = today.get("mintempC", "?")
+            date = today.get("date", "")
 
-            icon = _icon(desc)
+            # 时段预报：取 8h / 12h / 16h / 20h 代表上午/中午/下午/晚上
+            hours_data = today.get("hourly") or []
+            target_hours = {"8": "🌅 上午", "12": "☀️ 中午", "16": "🌤 下午", "20": "🌙 晚上"}
+            period_forecasts = []
+            for h in hours_data:
+                hour_str = str(int(h.get("time", "0")) // 100)  # "0800" → "8"
+                if hour_str in target_hours:
+                    temp_c = h.get("tempC", "?")
+                    desc = (h.get("weatherDesc") or [{}])[0].get("value", "未知")
+                    rain = h.get("chanceofrain", "0")
+                    icon = _icon(desc)
+                    period_forecasts.append(
+                        f"{target_hours[hour_str]}: {icon} {desc}  {temp_c}°C  🌧{rain}%"
+                    )
 
             lines = [
-                f"{icon}  {city} 今日天气...自己看喵。",
-                f"🌡 温度: {temp}°C  (体感 {feels}°C)",
-                f"☁ 天气: {desc}",
-                f"💧 湿度: {humidity}%",
-                f"💨 风力: {wind_dir} {wind_speed}km/h",
+                f"📅  {city} 全天预报 ({date})...自己看喵。",
                 f"📊 最高 {high}°C / 最低 {low}°C",
                 "——————————————",
-                "数据来自 wttr.in...信不信随你喵。",
             ]
+            if period_forecasts:
+                lines.extend(period_forecasts)
+            else:
+                # 降级：用当前天气
+                cur = (data.get("current_condition") or [{}])[0]
+                temp = cur.get("temp_C", "?")
+                desc = (cur.get("weatherDesc") or [{}])[0].get("value", "未知")
+                lines.append(f"当前: {_icon(desc)} {desc}  {temp}°C")
+
+            lines.append("——————————————")
+            lines.append("数据来自 wttr.in...信不信随你喵。")
             return "\n".join(lines)
 
     except Exception as e:

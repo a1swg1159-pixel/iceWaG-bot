@@ -66,14 +66,25 @@ async def _shutdown_scheduler():
 # ====== 定时推送辅助 ======
 
 def get_target_groups() -> List[int]:
-    """从环境变量 DAILY_PUSH_GROUPS 读取推送目标群号列表"""
-    raw = os.environ.get("DAILY_PUSH_GROUPS", "")
+    """从 NoneBot 配置读取主群/每日推送目标群号列表。"""
+    # NoneBot reads dotenv values into driver.config without exporting them to
+    # os.environ. Reading only os.environ made a correctly configured .env look
+    # empty, so main_group_only rejected every group.
+    raw = getattr(get_driver().config, "daily_push_groups", None)
+    if raw in (None, ""):
+        raw = os.environ.get("DAILY_PUSH_GROUPS", "")
     if not raw:
         logger.warning("DAILY_PUSH_GROUPS is empty, skip daily push")
         return []
+
+    if isinstance(raw, (list, tuple, set)):
+        parts = raw
+    else:
+        parts = str(raw).split(",")
+
     groups = []
-    for part in str(raw).split(","):
-        part = part.strip()
+    for part in parts:
+        part = str(part).strip()
         if part.isdigit():
             groups.append(int(part))
     return groups

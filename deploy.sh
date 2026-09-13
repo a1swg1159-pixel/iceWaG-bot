@@ -41,6 +41,8 @@ if [ -f ".env" ]; then
     DEF_GROUPS=$(grep -oP 'DAILY_PUSH_GROUPS=\K.*' .env | head -1)
     DEF_CITY=$(grep -oP 'WEATHER_CITY=\K.*' .env | head -1)
     DEF_ADMIN=$(grep -oP 'ADMIN_QQ=\K.*' .env | head -1)
+    DEF_LXNS_CLIENT_ID=$(grep -oP 'LXNS_OAUTH_CLIENT_ID=\K.*' .env | head -1)
+    DEF_LXNS_CLIENT_SECRET=$(grep -oP 'LXNS_OAUTH_CLIENT_SECRET=\K.*' .env | head -1)
 fi
 DEF_TOKEN=${DEF_TOKEN:-$(openssl rand -hex 8)}
 DEF_CITY=${DEF_CITY:-北京}
@@ -68,6 +70,12 @@ while [ -z "$ADMIN_QQ" ]; do
     read -p "管理员 QQ 号（必填）: " ADMIN_QQ
 done
 
+read -p "LXNS OAuth 应用 ID [$DEF_LXNS_CLIENT_ID]: " LXNS_CLIENT_ID
+LXNS_CLIENT_ID=${LXNS_CLIENT_ID:-$DEF_LXNS_CLIENT_ID}
+read -s -p "LXNS OAuth 应用密钥（PKCE 可留空）: " LXNS_CLIENT_SECRET
+echo ""
+LXNS_CLIENT_SECRET=${LXNS_CLIENT_SECRET:-$DEF_LXNS_CLIENT_SECRET}
+
 # ====== 3. 生成 .env ======
 echo ""
 echo "📝 生成配置文件..."
@@ -80,6 +88,8 @@ ONEBOT_V11_ACCESS_TOKEN=$ACCESS_TOKEN
 DAILY_PUSH_GROUPS=$PUSH_GROUPS
 WEATHER_CITY=$WEATHER_CITY
 ADMIN_QQ=$ADMIN_QQ
+LXNS_OAUTH_CLIENT_ID=$LXNS_CLIENT_ID
+LXNS_OAUTH_CLIENT_SECRET=$LXNS_CLIENT_SECRET
 EOF
 echo "   .env ✓"
 

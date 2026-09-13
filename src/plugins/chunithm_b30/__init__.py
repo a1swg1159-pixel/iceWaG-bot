@@ -1,38 +1,55 @@
 import asyncio
-import json
+import os
 from pathlib import Path
-from typing import Dict
+from typing import Optional, Tuple
 
-from nonebot import on_command
+from nonebot import get_driver, on_command
 from nonebot.adapters.onebot.v11 import MessageEvent, MessageSegment
 from nonebot.params import CommandArg
 
-from src.common import at_me_only, main_group_only, random_delay
-from .b30_core import generate_b30_image, generate_b50_image, generate_fu_image, generate_push_score_image
+from src.common import at_me_only, random_delay
+from .b30_core import (
+    generate_b30_image, generate_b50_image, generate_fu_image,
+    generate_push_score_image, get_player_info,
+)
+from .oauth import (
+    create_authorization_url, exchange_authorization_code, get_access_token,
+    has_oauth_binding, remove_oauth_binding,
+)
 
 
 DATA_DIR = Path("data")
-TOKENS_FILE = DATA_DIR / "b30_tokens.json"
 OUTPUT_DIR = DATA_DIR / "b30_outputs"
 
 
-def load_tokens() -> Dict[str, str]:
-    if not TOKENS_FILE.exists():
-        return {}
-    try:
-        return json.loads(TOKENS_FILE.read_text(encoding="utf-8"))
-    except Exception:
-        return {}
+def _config_value(name: str) -> str:
+    value = getattr(get_driver().config, name.lower(), None)
+    if value in (None, ""):
+        value = os.environ.get(name, "")
+    return str(value or "").strip()
 
 
-def save_tokens(data: Dict[str, str]) -> None:
-    DATA_DIR.mkdir(parents=True, exist_ok=True)
-    TOKENS_FILE.write_text(
-        json.dumps(data, ensure_ascii=True, indent=2), encoding="utf-8"
+def _oauth_config() -> Tuple[str, str]:
+    return (
+        _config_value("LXNS_OAUTH_CLIENT_ID"),
+        _config_value("LXNS_OAUTH_CLIENT_SECRET"),
     )
 
 
-chu_cmd = on_command("chu", priority=10, block=True, rule=main_group_only & at_me_only)
+async def _resolve_credential(user_id: str) -> Tuple[Optional[str], str]:
+    client_id, client_secret = _oauth_config()
+    if not has_oauth_binding(user_id):
+        return None, "尚未进行 OAuth 授权"
+    if not client_id:
+        return None, "Bot 未配置 LXNS_OAUTH_CLIENT_ID"
+    return await asyncio.to_thread(
+        get_access_token, user_id, client_id, client_secret
+    )
+
+
+chu_cmd = on_command(
+    "chu", priority=10, block=True, rule=at_me_only,
+)
 
 
 @chu_cmd.handle()
@@ -43,14 +60,15 @@ async def handle_chu(event: MessageEvent, args=CommandArg()):
         await chu_cmd.finish(
             MessageSegment.at(event.get_user_id())
             + "\n中二节奏指令...自己看喵。\n"
-            "/chu b30bind <token> - 绑定 Token\n"
-            "/chu b30unbind - 解除绑定\n"
+            "/chu bind - 获取 LXNS OAuth 授权链接\n"
+            "/chu bind <授权码> - 完成绑定\n"
+            "/chu unbind - 解除绑定\n"
             "/chu b30 - 生成 B30 图片\n"
             "/chu b50 - 生成 B50 图片\n"
             "/chu 推分 - 随机抽一首歌\n"
             "/chu 装福 - 随机抽一首上分曲\n"
             "——————————————\n"
-            "💡 需要先绑定 Token 才能用喵。"
+            "💡 成绩查询仅支持 OAuth，请在私聊中完成授权。"
         )
 
     parts = raw.split(maxsplit=1)
@@ -58,45 +76,75 @@ async def handle_chu(event: MessageEvent, args=CommandArg()):
     sub_args = parts[1] if len(parts) > 1 else ""
 
     user_id = event.get_user_id()
-    tokens = load_tokens()
-
-    if sub == "b30bind":
-        token = sub_args.strip()
-        if not token:
+    if sub == "bind":
+        if event.message_type != "private":
+            await chu_cmd.finish(
+                MessageSegment.at(user_id)
+                + "\nOAuth 授权绑定请私聊 Bot 发送 /chu bind。"
+            )
+        client_id, client_secret = _oauth_config()
+        if not client_id:
             await chu_cmd.finish(
                 MessageSegment.at(event.get_user_id())
-                + "\n用法: /chu b30bind <token>喵。"
+                + "\nBot 尚未配置 LXNS OAuth 应用 ID，请联系管理员。"
             )
-        tokens[user_id] = token
-        save_tokens(tokens)
+        code = sub_args.strip()
+        if not code:
+            url = await asyncio.to_thread(
+                create_authorization_url, user_id, client_id
+            )
+            await chu_cmd.finish(
+                MessageSegment.at(event.get_user_id())
+                + "\n请打开下面的 LXNS 授权链接，只授权读取玩家数据：\n"
+                + url
+                + "\n授权完成后，把页面显示的授权码发给我：/chu bind <授权码>"
+            )
+        credential, error = await asyncio.to_thread(
+            exchange_authorization_code, user_id, code, client_id,
+            client_secret,
+        )
+        if not credential:
+            await chu_cmd.finish(
+                MessageSegment.at(event.get_user_id())
+                + f"\nOAuth 绑定失败：{error}"
+            )
+        player = await asyncio.to_thread(get_player_info, credential)
+        if not player:
+            remove_oauth_binding(user_id)
+            await chu_cmd.finish(
+                MessageSegment.at(event.get_user_id())
+                + "\n授权成功，但无法读取中二节奏玩家数据。请确认已同步成绩并授权 read_player。"
+            )
         await chu_cmd.finish(
-            MessageSegment.at(event.get_user_id()) + "\n绑好了...别弄丢了喵。")
+            MessageSegment.at(event.get_user_id())
+            + f"\nOAuth 绑定完成，已关联玩家：{player.name}。"
+        )
 
-    if sub == "b30unbind":
-        if user_id in tokens:
-            tokens.pop(user_id)
-            save_tokens(tokens)
+    if sub == "unbind":
+        removed = remove_oauth_binding(user_id)
+        if removed:
             await chu_cmd.finish(
                 MessageSegment.at(event.get_user_id()) + "\n解绑了...下次记得再来喵。")
         await chu_cmd.finish(
             MessageSegment.at(event.get_user_id()) + "\n你还没绑定呢...真麻烦喵。")
 
-    # 以下需要 Token
-    token = tokens.get(user_id)
-    if not token:
+    credential, auth_error = await _resolve_credential(user_id)
+    if not credential:
         await chu_cmd.finish(
             MessageSegment.at(event.get_user_id())
-            + "\n还没绑定 Token... /chu b30bind <token>，自己弄喵。"
+            + f"\n无法读取授权：{auth_error}。请先发送 /chu bind。"
         )
 
     if sub == "b30":
         await chu_cmd.send("B30 图片生成中...等着喵。")
         await asyncio.sleep(1.5)
-        image_path = await asyncio.to_thread(generate_b30_image, token, OUTPUT_DIR, user_id)
+        image_path = await asyncio.to_thread(
+            generate_b30_image, credential, OUTPUT_DIR, user_id
+        )
         if not image_path:
             await chu_cmd.finish(
                 MessageSegment.at(event.get_user_id())
-                + "\n数据获取失败...Token 是不是有问题？喵。"
+                + "\n数据获取失败，请重新同步 LXNS 成绩或使用 /chu bind 重新授权。"
             )
         msg = (
             MessageSegment.at(event.get_user_id())
@@ -107,11 +155,13 @@ async def handle_chu(event: MessageEvent, args=CommandArg()):
 
     if sub == "b50":
         await chu_cmd.send("B50 图片生成中...等着喵。")
-        image_path = await asyncio.to_thread(generate_b50_image, token, OUTPUT_DIR, user_id)
+        image_path = await asyncio.to_thread(
+            generate_b50_image, credential, OUTPUT_DIR, user_id
+        )
         if not image_path:
             await chu_cmd.finish(
                 MessageSegment.at(event.get_user_id())
-                + "\n数据获取失败...Token 是不是有问题？喵。"
+                + "\n数据获取失败，请重新同步 LXNS 成绩或使用 /chu bind 重新授权。"
             )
         msg = (
             MessageSegment.at(event.get_user_id())
@@ -123,11 +173,11 @@ async def handle_chu(event: MessageEvent, args=CommandArg()):
     if sub == "推分":
         await chu_cmd.send("随机抽歌中...别催喵。")
         result = await asyncio.to_thread(
-            generate_push_score_image, token, OUTPUT_DIR, user_id)
+            generate_push_score_image, credential, OUTPUT_DIR, user_id)
         if not result:
             await chu_cmd.finish(
                 MessageSegment.at(event.get_user_id())
-                + "\n数据获取失败...Token 是不是有问题？喵。"
+                + "\n数据获取失败，请重新同步 LXNS 成绩或使用 /chu bind 重新授权。"
             )
         image_path, score = result
         msg = (
@@ -140,7 +190,7 @@ async def handle_chu(event: MessageEvent, args=CommandArg()):
     if sub == "装福":
         await chu_cmd.send("找高分曲中...等着喵。")
         result = await asyncio.to_thread(
-            generate_fu_image, token, OUTPUT_DIR, user_id)
+            generate_fu_image, credential, OUTPUT_DIR, user_id)
         if not result:
             await chu_cmd.finish(
                 MessageSegment.at(event.get_user_id())

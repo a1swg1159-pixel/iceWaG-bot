@@ -8,11 +8,11 @@ from email.header import decode_header
 from pathlib import Path
 
 from nonebot import on_command
-from nonebot.adapters.onebot.v11 import Bot, MessageEvent, MessageSegment
+from nonebot.adapters.onebot.v11 import Bot, MessageEvent
 from nonebot.log import logger
 from nonebot.params import CommandArg
 
-from src.common import scheduler, get_target_groups
+from src.common import scheduler
 
 DATA_DIR = Path("data")
 BINDINGS_FILE = DATA_DIR / "email_bindings.json"
@@ -150,25 +150,6 @@ def fetch_unseen_emails(email_addr: str, auth_code: str, since_date: str) -> lis
             pass
 
 
-# ====== 群成员检查 ======
-
-async def get_user_groups(bot: Bot, user_id: int) -> list[int]:
-    target_groups = get_target_groups()
-    if not target_groups:
-        return []
-
-    result = []
-    for gid in target_groups:
-        try:
-            member_info = await bot.get_group_member_info(
-                group_id=gid, user_id=user_id, no_cache=True
-            )
-            if member_info:
-                result.append(gid)
-        except Exception:
-            continue
-    return result
-
 
 # ====== 绑定指令（仅私聊） ======
 
@@ -298,18 +279,6 @@ async def check_emails():
             if emails:
                 count = len(emails)
                 logger.info(f"New email: {count} for {addr}")
-
-                # ---- 群通知 ----
-                group_ids = await get_user_groups(bot, user_id)
-                at_text = MessageSegment.at(user_id)
-                for gid in group_ids:
-                    try:
-                        await bot.send_group_msg(
-                            group_id=gid,
-                            message=f"{at_text}\n📧 {addr} 收到了 {count} 封新邮件...自己看私聊喵。",
-                        )
-                    except Exception as e:
-                        logger.warning(f"Failed to send group notif to {gid}: {e}")
 
                 # ---- 私聊通知 ----
                 lines = [f"📧 {addr} 新邮件通知"]

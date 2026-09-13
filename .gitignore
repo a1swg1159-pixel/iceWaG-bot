@@ -18,11 +18,20 @@ napcat/config/
 # 生成的图片（可重新生成）
 data/b30_outputs/
 data/fortune_outputs/
+data/takumi_outputs/
+
+# 运行日志与按需下载的图片缓存
+data/logs/
+data/maimai_assets/
+data/ongeki_official/
 
 # 运行时数据（含用户隐私）
 data/b30_tokens.json
+data/b30_oauth_tokens.json
+data/b30_oauth_pending.json
 data/fortune_data.json
 data/email_bindings.json
 data/coins.json
 data/quiz.json
 data/uno_games.json
+data/takumi_bindings.json

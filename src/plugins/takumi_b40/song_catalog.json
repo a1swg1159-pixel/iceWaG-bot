@@ -1,0 +1,3564 @@
+[
+  {
+    "song_id": 1,
+    "internal_name": "Eltaw",
+    "title": "Eltaw",
+    "levels": [
+      "40",
+      "80",
+      "120",
+      "148"
+    ],
+    "special": "0",
+    "is_public": true
+  },
+  {
+    "song_id": 2,
+    "internal_name": "ELIMINATE LOCKED",
+    "title": "ELIMINATE LOCKED",
+    "levels": [
+      "10",
+      "30",
+      "105",
+      "138"
+    ],
+    "special": "Rav",
+    "is_public": true
+  },
+  {
+    "song_id": 3,
+    "internal_name": "DeusX-Machina",
+    "title": "DeusX-Machina",
+    "levels": [
+      "60",
+      "80",
+      "133",
+      "9999"
+    ],
+    "special": "0",
+    "is_public": true
+  },
+  {
+    "song_id": 4,
+    "internal_name": "SILASIM",
+    "title": "SILASIM",
+    "levels": [
+      "20",
+      "80",
+      "134",
+      "9999"
+    ],
+    "special": "0",
+    "is_public": true
+  },
+  {
+    "song_id": 5,
+    "internal_name": "Oversleeping",
+    "title": "Oversleeping",
+    "levels": [
+      "40",
+      "90",
+      "139",
+      "154"
+    ],
+    "special": "N",
+    "is_public": true
+  },
+  {
+    "song_id": 6,
+    "internal_name": "電脳戦姫 -cyber valkyrie-",
+    "title": "電脳戦姫 -cyber valkyrie-",
+    "levels": [
+      "30",
+      "105",
+      "141",
+      "147"
+    ],
+    "special": "RavDl",
+    "is_public": true
+  },
+  {
+    "song_id": 7,
+    "internal_name": "Taiko Warrior",
+    "title": "Taiko Warrior",
+    "levels": [
+      "70",
+      "115",
+      "154",
+      "153"
+    ],
+    "special": "insLockDl",
+    "is_public": true
+  },
+  {
+    "song_id": 8,
+    "internal_name": "ST4R DUST",
+    "title": "ST4R DUST",
+    "levels": [
+      "30",
+      "90",
+      "115",
+      "144"
+    ],
+    "special": "Rav",
+    "is_public": true
+  },
+  {
+    "song_id": 9,
+    "internal_name": "NOTES RUSH!",
+    "title": "NOTES RUSH!",
+    "levels": [
+      "90",
+      "139",
+      "161",
+      "9999"
+    ],
+    "special": "ev",
+    "is_public": true
+  },
+  {
+    "song_id": 10,
+    "internal_name": "琴音",
+    "title": "琴音",
+    "levels": [
+      "30",
+      "80",
+      "110",
+      "151"
+    ],
+    "special": "0",
+    "is_public": true
+  },
+  {
+    "song_id": 11,
+    "internal_name": "Hottie - TAKUMIX -",
+    "title": "Hottie - TAKUMIX -",
+    "levels": [
+      "40",
+      "80",
+      "100",
+      "9999"
+    ],
+    "special": "0",
+    "is_public": true
+  },
+  {
+    "song_id": 12,
+    "internal_name": "ARCANAA？",
+    "title": "ARCANAA？",
+    "levels": [
+      "50",
+      "90",
+      "150",
+      "9999"
+    ],
+    "special": "0",
+    "is_public": true
+  },
+  {
+    "song_id": 13,
+    "internal_name": "Arousal Legato",
+    "title": "Arousal Legato",
+    "levels": [
+      "60",
+      "105",
+      "131",
+      "147"
+    ],
+    "special": "N",
+    "is_public": true
+  },
+  {
+    "song_id": 14,
+    "internal_name": "tundra",
+    "title": "tundra",
+    "levels": [
+      "40",
+      "105",
+      "147",
+      "148"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
+    "song_id": 15,
+    "internal_name": "Vapula Cathedral",
+    "title": "Vapula Cathedral",
+    "levels": [
+      "60",
+      "80",
+      "120",
+      "143"
+    ],
+    "special": "0",
+    "is_public": true
+  },
+  {
+    "song_id": 16,
+    "internal_name": "Get Out of This Endmost Dystøpia",
+    "title": "Get Out of This Endmost Dystøpia",
+    "levels": [
+      "70",
+      "125",
+      "137",
+      "9999"
+    ],
+    "special": "N",
+    "is_public": true
+  },
+  {
+    "song_id": 17,
+    "internal_name": "Connection Destination：Utopia",
+    "title": "Connection Destination：Utopia",
+    "levels": [
+      "70",
+      "115",
+      "147",
+      "150"
+    ],
+    "special": "RavDl",
+    "is_public": true
+  },
+  {
+    "song_id": 19,
+    "internal_name": "Are You Ready？？？",
+    "title": "Are You Ready？？？",
+    "levels": [
+      "20",
+      "80",
+      "120",
+      "147"
+    ],
+    "special": "N",
+    "is_public": true
+  },
+  {
+    "song_id": 20,
+    "internal_name": "Dutedimpianekepusaan-分散的絶望夢-",
+    "title": "Dutedimpianekepusaan-分散的絶望夢-",
+    "levels": [
+      "80",
+      "120",
+      "142",
+      "159"
+    ],
+    "special": "Rav",
+    "is_public": true
+  },
+  {
+    "song_id": 21,
+    "internal_name": "volcanic",
+    "title": "volcanic",
+    "levels": [
+      "70",
+      "120",
+      "157",
+      "9999"
+    ],
+    "special": "ev",
+    "is_public": true
+  },
+  {
+    "song_id": 22,
+    "internal_name": "Dark Aspect",
+    "title": "Dark Aspect",
+    "levels": [
+      "20",
+      "60",
+      "133",
+      "125"
+    ],
+    "special": "Rav",
+    "is_public": true
+  },
+  {
+    "song_id": 23,
+    "internal_name": "Memory Of Summer Days",
+    "title": "Memory Of Summer Days",
+    "levels": [
+      "40",
+      "60",
+      "110",
+      "147"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
+    "song_id": 24,
+    "internal_name": "To our sky",
+    "title": "To our sky",
+    "levels": [
+      "20",
+      "60",
+      "130",
+      "9999"
+    ],
+    "special": "0",
+    "is_public": true
+  },
+  {
+    "song_id": 25,
+    "internal_name": "Chartreuse Green",
+    "title": "Chartreuse Green",
+    "levels": [
+      "50",
+      "80",
+      "110",
+      "9999"
+    ],
+    "special": "N",
+    "is_public": true
+  },
+  {
+    "song_id": 26,
+    "internal_name": "Psyched Fevereiro",
+    "title": "Psyched Fevereiro",
+    "levels": [
+      "30",
+      "90",
+      "139",
+      "9999"
+    ],
+    "special": "N",
+    "is_public": true
+  },
+  {
+    "song_id": 27,
+    "internal_name": "Dogbite",
+    "title": "Dogbite",
+    "levels": [
+      "40",
+      "90",
+      "144",
+      "9999"
+    ],
+    "special": "N",
+    "is_public": true
+  },
+  {
+    "song_id": 28,
+    "internal_name": "BPM＝RT",
+    "title": "BPM＝RT",
+    "levels": [
+      "70",
+      "100",
+      "150",
+      "154"
+    ],
+    "special": "bpmrtRav",
+    "is_public": true
+  },
+  {
+    "song_id": 29,
+    "internal_name": "3LiMiNATE",
+    "title": "3LiMiNATE",
+    "levels": [
+      "40",
+      "115",
+      "146",
+      "9999"
+    ],
+    "special": "N",
+    "is_public": true
+  },
+  {
+    "song_id": 30,
+    "internal_name": "マジカルラテアート",
+    "title": "マジカルラテアート",
+    "levels": [
+      "30",
+      "80",
+      "120",
+      "138"
+    ],
+    "special": "RavDl",
+    "is_public": true
+  },
+  {
+    "song_id": 31,
+    "internal_name": "Cipher：／2＆／／＜l0",
+    "title": "Cipher : /2&//＜|0",
+    "levels": [
+      "40",
+      "90",
+      "141",
+      "9999"
+    ],
+    "special": "0",
+    "is_public": true
+  },
+  {
+    "song_id": 32,
+    "internal_name": "Rubbish Sorting",
+    "title": "Rubbish Sorting",
+    "levels": [
+      "20",
+      "50",
+      "100",
+      "144"
+    ],
+    "special": "0",
+    "is_public": true
+  },
+  {
+    "song_id": 33,
+    "internal_name": "Re：End of a Dream",
+    "title": "Re：End of a Dream",
+    "levels": [
+      "90",
+      "120",
+      "143",
+      "161"
+    ],
+    "special": "insLock",
+    "is_public": true
+  },
+  {
+    "song_id": 34,
+    "internal_name": "Outrage",
+    "title": "Outrage",
+    "levels": [
+      "30",
+      "70",
+      "133",
+      "140"
+    ],
+    "special": "0",
+    "is_public": true
+  },
+  {
+    "song_id": 35,
+    "internal_name": "Squall - TAKUMIX -",
+    "title": "Squall - TAKUMIX -",
+    "levels": [
+      "50",
+      "125",
+      "149",
+      "9999"
+    ],
+    "special": "0",
+    "is_public": true
+  },
+  {
+    "song_id": 36,
+    "internal_name": "Yggdrasill",
+    "title": "Yggdrasill",
+    "levels": [
+      "70",
+      "120",
+      "149",
+      "9999"
+    ],
+    "special": "0",
+    "is_public": true
+  },
+  {
+    "song_id": 37,
+    "internal_name": "Sephirah×ClusteR",
+    "title": "Sephirah×ClusteR",
+    "levels": [
+      "70",
+      "115",
+      "151",
+      "152"
+    ],
+    "special": "bbRav",
+    "is_public": true
+  },
+  {
+    "song_id": 38,
+    "internal_name": "ミルキーウェイに口づけを",
+    "title": "ミルキーウェイに口づけを",
+    "levels": [
+      "20",
+      "60",
+      "125",
+      "153"
+    ],
+    "special": "0",
+    "is_public": true
+  },
+  {
+    "song_id": 39,
+    "internal_name": "Erwachen (TAKUMI³mix)",
+    "title": "Erwachen (TAKUMI³mix)",
+    "levels": [
+      "40",
+      "50",
+      "115",
+      "148"
+    ],
+    "special": "Rav",
+    "is_public": true
+  },
+  {
+    "song_id": 40,
+    "internal_name": "Open The Gate",
+    "title": "Open The Gate",
+    "levels": [
+      "80",
+      "115",
+      "154",
+      "140"
+    ],
+    "special": "RavDl",
+    "is_public": true
+  },
+  {
+    "song_id": 41,
+    "internal_name": "Fulgurite",
+    "title": "Fulgurite",
+    "levels": [
+      "60",
+      "80",
+      "115",
+      "139"
+    ],
+    "special": "0",
+    "is_public": true
+  },
+  {
+    "song_id": 42,
+    "internal_name": "bpm160の練習曲",
+    "title": "bpm160の練習曲",
+    "levels": [
+      "20",
+      "90",
+      "135",
+      "145"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
+    "song_id": 43,
+    "internal_name": "FIRST PROMIZE",
+    "title": "FIRST PROMIZE",
+    "levels": [
+      "20",
+      "105",
+      "131",
+      "9999"
+    ],
+    "special": "0",
+    "is_public": true
+  },
+  {
+    "song_id": 44,
+    "internal_name": "DENGEKI Tube",
+    "title": "DENGEKI Tube",
+    "levels": [
+      "80",
+      "120",
+      "158",
+      "9999"
+    ],
+    "special": "ev",
+    "is_public": true
+  },
+  {
+    "song_id": 45,
+    "internal_name": "Claimh solaiS",
+    "title": "Claimh solaiS",
+    "levels": [
+      "20",
+      "70",
+      "115",
+      "134"
+    ],
+    "special": "0",
+    "is_public": true
+  },
+  {
+    "song_id": 46,
+    "internal_name": "rvLer",
+    "title": "rvLer",
+    "levels": [
+      "50",
+      "105",
+      "146",
+      "9999"
+    ],
+    "special": "0",
+    "is_public": true
+  },
+  {
+    "song_id": 47,
+    "internal_name": "ParadiseWORLD sketched MAN",
+    "title": "ParadiseWORLD sketched MAN",
+    "levels": [
+      "60",
+      "120",
+      "141",
+      "154"
+    ],
+    "special": "bbDjac",
+    "is_public": true
+  },
+  {
+    "song_id": 48,
+    "internal_name": "Ymir",
+    "title": "Ymir",
+    "levels": [
+      "40",
+      "105",
+      "131",
+      "156"
+    ],
+    "special": "N",
+    "is_public": true
+  },
+  {
+    "song_id": 49,
+    "internal_name": "Stratoscraper",
+    "title": "Stratoscraper",
+    "levels": [
+      "40",
+      "110",
+      "134",
+      "147"
+    ],
+    "special": "0",
+    "is_public": true
+  },
+  {
+    "song_id": 50,
+    "internal_name": "刹空月想 feat.こずみっく",
+    "title": "刹空月想 feat.こずみっく",
+    "levels": [
+      "50",
+      "100",
+      "137",
+      "9999"
+    ],
+    "special": "0",
+    "is_public": true
+  },
+  {
+    "song_id": 51,
+    "internal_name": "ZEUS † 666",
+    "title": "ZEUS † 666",
+    "levels": [
+      "80",
+      "115",
+      "149",
+      "152"
+    ],
+    "special": "n",
+    "is_public": true
+  },
+  {
+    "song_id": 52,
+    "internal_name": "iL-Artifact",
+    "title": "iL-Artifact",
+    "levels": [
+      "90",
+      "133",
+      "155",
+      "9999"
+    ],
+    "special": "ev",
+    "is_public": true
+  },
+  {
+    "song_id": 53,
+    "internal_name": "Enemy Controller",
+    "title": "Enemy Controller",
+    "levels": [
+      "50",
+      "80",
+      "131",
+      "146"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
+    "song_id": 54,
+    "internal_name": "Electrick or Treat",
+    "title": "Electrick or Treat",
+    "levels": [
+      "50",
+      "105",
+      "145",
+      "9999"
+    ],
+    "special": "ev",
+    "is_public": true
+  },
+  {
+    "song_id": 55,
+    "internal_name": "ZEUS＋1 -2017 Flashback-",
+    "title": "ZEUS+1 -2017 Flashback-",
+    "levels": [
+      "60",
+      "110",
+      "144",
+      "9999"
+    ],
+    "special": "n",
+    "is_public": true
+  },
+  {
+    "song_id": 56,
+    "internal_name": "紅恋桜",
+    "title": "紅恋桜",
+    "levels": [
+      "60",
+      "115",
+      "151",
+      "9999"
+    ],
+    "special": "n",
+    "is_public": true
+  },
+  {
+    "song_id": 57,
+    "internal_name": "Dance with Silence",
+    "title": "Dance with Silence",
+    "levels": [
+      "40",
+      "60",
+      "143",
+      "151"
+    ],
+    "special": "Rav",
+    "is_public": true
+  },
+  {
+    "song_id": 58,
+    "internal_name": "Flamewall",
+    "title": "Flamewall",
+    "levels": [
+      "90",
+      "120",
+      "137",
+      "156"
+    ],
+    "special": "bb",
+    "is_public": true
+  },
+  {
+    "song_id": 59,
+    "internal_name": "Tera I／O",
+    "title": "Tera I/O",
+    "levels": [
+      "100",
+      "133",
+      "158",
+      "9999"
+    ],
+    "special": "0",
+    "is_public": true
+  },
+  {
+    "song_id": 60,
+    "internal_name": "Divine Scourge",
+    "title": "Divine Scourge",
+    "levels": [
+      "20",
+      "70",
+      "115",
+      "9999"
+    ],
+    "special": "0",
+    "is_public": true
+  },
+  {
+    "song_id": 61,
+    "internal_name": "LiVEMeTAL",
+    "title": "LiVEMeTAL",
+    "levels": [
+      "70",
+      "105",
+      "132",
+      "140"
+    ],
+    "special": "0",
+    "is_public": true
+  },
+  {
+    "song_id": 62,
+    "internal_name": "ViCToRi4",
+    "title": "ViCToRi4",
+    "levels": [
+      "50",
+      "90",
+      "146",
+      "9999"
+    ],
+    "special": "0",
+    "is_public": true
+  },
+  {
+    "song_id": 63,
+    "internal_name": "Peroizor³",
+    "title": "Peroizor³",
+    "levels": [
+      "60",
+      "90",
+      "130",
+      "152"
+    ],
+    "special": "0",
+    "is_public": true
+  },
+  {
+    "song_id": 64,
+    "internal_name": "Fxxking Wedding",
+    "title": "Fxxking Wedding",
+    "levels": [
+      "30",
+      "90",
+      "145",
+      "9999"
+    ],
+    "special": "ev",
+    "is_public": true
+  },
+  {
+    "song_id": 65,
+    "internal_name": "Creigis",
+    "title": "Creigis",
+    "levels": [
+      "60",
+      "125",
+      "150",
+      "9999"
+    ],
+    "special": "bb",
+    "is_public": true
+  },
+  {
+    "song_id": 66,
+    "internal_name": "Alice Witch Of Sweets",
+    "title": "Alice Witch Of Sweets",
+    "levels": [
+      "50",
+      "125",
+      "120",
+      "141"
+    ],
+    "special": "0",
+    "is_public": true
+  },
+  {
+    "song_id": 67,
+    "internal_name": "Aquae Et Puella",
+    "title": "Aquae Et Puella",
+    "levels": [
+      "80",
+      "125",
+      "147",
+      "9999"
+    ],
+    "special": "0",
+    "is_public": true
+  },
+  {
+    "song_id": 68,
+    "internal_name": "Cuvism³",
+    "title": "Cuvism³",
+    "levels": [
+      "90",
+      "130",
+      "154",
+      "157"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
+    "song_id": 70,
+    "internal_name": "Secret Order",
+    "title": "Secret Order",
+    "levels": [
+      "50",
+      "105",
+      "132",
+      "143"
+    ],
+    "special": "0",
+    "is_public": true
+  },
+  {
+    "song_id": 71,
+    "internal_name": "Thear",
+    "title": "Thear",
+    "levels": [
+      "60",
+      "125",
+      "130",
+      "150"
+    ],
+    "special": "insLock",
+    "is_public": true
+  },
+  {
+    "song_id": 72,
+    "internal_name": "GOODBOUNCE",
+    "title": "GOODBOUNCE",
+    "levels": [
+      "70",
+      "110",
+      "131",
+      "142"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
+    "song_id": 73,
+    "internal_name": "GOODMEN",
+    "title": "GOODMEN",
+    "levels": [
+      "70",
+      "90",
+      "131",
+      "151"
+    ],
+    "special": "0",
+    "is_public": true
+  },
+  {
+    "song_id": 74,
+    "internal_name": "GOODWORLD",
+    "title": "GOODWORLD",
+    "levels": [
+      "70",
+      "125",
+      "151",
+      "132"
+    ],
+    "special": "DlRavDhl",
+    "is_public": true
+  },
+  {
+    "song_id": 75,
+    "internal_name": "conflict",
+    "title": "conflict",
+    "levels": [
+      "50",
+      "90",
+      "132",
+      "160"
+    ],
+    "special": "insLockev",
+    "is_public": true
+  },
+  {
+    "song_id": 76,
+    "internal_name": "Rocking The Future",
+    "title": "Rocking The Future",
+    "levels": [
+      "20",
+      "70",
+      "115",
+      "9999"
+    ],
+    "special": "N",
+    "is_public": true
+  },
+  {
+    "song_id": 77,
+    "internal_name": "Toytown",
+    "title": "Toytown",
+    "levels": [
+      "60",
+      "90",
+      "136",
+      "9999"
+    ],
+    "special": "N",
+    "is_public": true
+  },
+  {
+    "song_id": 78,
+    "internal_name": "Better Graphic Animation",
+    "title": "Better Graphic Animation",
+    "levels": [
+      "30",
+      "90",
+      "139",
+      "143"
+    ],
+    "special": "DlRavDhl",
+    "is_public": true
+  },
+  {
+    "song_id": 79,
+    "internal_name": "Wütender Postbote",
+    "title": "Wütender Postbote",
+    "levels": [
+      "80",
+      "90",
+      "132",
+      "132"
+    ],
+    "special": "Rav",
+    "is_public": true
+  },
+  {
+    "song_id": 80,
+    "internal_name": "Canon (trr⇔don's Remix)",
+    "title": "Canon (trr⇔don's Remix)",
+    "levels": [
+      "60",
+      "105",
+      "139",
+      "9999"
+    ],
+    "special": "0",
+    "is_public": true
+  },
+  {
+    "song_id": 81,
+    "internal_name": "RESURRECTION WORLD",
+    "title": "RESURRECTION WORLD",
+    "levels": [
+      "60",
+      "120",
+      "150",
+      "9999"
+    ],
+    "special": "0",
+    "is_public": true
+  },
+  {
+    "song_id": 82,
+    "internal_name": "Memory：ZERΘ",
+    "title": "Memory：ZERΘ",
+    "levels": [
+      "60",
+      "120",
+      "143",
+      "9999"
+    ],
+    "special": "Dlev",
+    "is_public": true
+  },
+  {
+    "song_id": 83,
+    "internal_name": "Galaxy Shot",
+    "title": "Galaxy Shot",
+    "levels": [
+      "50",
+      "90",
+      "140",
+      "9999"
+    ],
+    "special": "N",
+    "is_public": true
+  },
+  {
+    "song_id": 84,
+    "internal_name": "destiny feat.ＯＲＩ姫",
+    "title": "destiny feat.ＯＲＩ姫",
+    "levels": [
+      "20",
+      "70",
+      "120",
+      "138"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
+    "song_id": 85,
+    "internal_name": "NiFlhel",
+    "title": "NiFlhel",
+    "levels": [
+      "90",
+      "125",
+      "147",
+      "9999"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
+    "song_id": 86,
+    "internal_name": "αthena",
+    "title": "αthena",
+    "levels": [
+      "50",
+      "110",
+      "146",
+      "9999"
+    ],
+    "special": "Dlev",
+    "is_public": true
+  },
+  {
+    "song_id": 87,
+    "internal_name": "Starry Sky",
+    "title": "Starry Sky",
+    "levels": [
+      "30",
+      "80",
+      "125",
+      "144"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
+    "song_id": 88,
+    "internal_name": "宵焔桜火",
+    "title": "宵焔桜火",
+    "levels": [
+      "70",
+      "115",
+      "143",
+      "9999"
+    ],
+    "special": "N",
+    "is_public": true
+  },
+  {
+    "song_id": 89,
+    "internal_name": "Evil Emperor",
+    "title": "Evil Emperor",
+    "levels": [
+      "40",
+      "100",
+      "131",
+      "155"
+    ],
+    "special": "N",
+    "is_public": true
+  },
+  {
+    "song_id": 90,
+    "internal_name": "ANTITHESIS",
+    "title": "ANTITHESIS",
+    "levels": [
+      "30",
+      "70",
+      "125",
+      "9999"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
+    "song_id": 91,
+    "internal_name": "ReVEAL",
+    "title": "ReVEAL",
+    "levels": [
+      "30",
+      "80",
+      "137",
+      "130"
+    ],
+    "special": "Rav",
+    "is_public": true
+  },
+  {
+    "song_id": 92,
+    "internal_name": "ZODIAC",
+    "title": "ZODIAC",
+    "levels": [
+      "40",
+      "80",
+      "132",
+      "140"
+    ],
+    "special": "DlRav",
+    "is_public": true
+  },
+  {
+    "song_id": 93,
+    "internal_name": "ZEUS",
+    "title": "ZEUS",
+    "levels": [
+      "80",
+      "100",
+      "136",
+      "150"
+    ],
+    "special": "0",
+    "is_public": true
+  },
+  {
+    "song_id": 94,
+    "internal_name": "Oceanus",
+    "title": "Oceanus",
+    "levels": [
+      "50",
+      "100",
+      "135",
+      "143"
+    ],
+    "special": "n",
+    "is_public": true
+  },
+  {
+    "song_id": 95,
+    "internal_name": "キマグレ☆テキトウ・アンサンブル→コミュニケーション Re_Dive!",
+    "title": "キマグレ☆テキトウ・アンサンブル→コミュニケーション Re_Dive!",
+    "levels": [
+      "60",
+      "115",
+      "148",
+      "9999"
+    ],
+    "special": "bb",
+    "is_public": true
+  },
+  {
+    "song_id": 96,
+    "internal_name": "HARD NOTES RUSH!",
+    "title": "HARD NOTES RUSH!",
+    "levels": [
+      "70",
+      "105",
+      "134",
+      "9999"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
+    "song_id": 97,
+    "internal_name": "RAKUGAKI NOTE",
+    "title": "RAKUGAKI NOTE",
+    "levels": [
+      "20",
+      "80",
+      "115",
+      "142"
+    ],
+    "special": "N",
+    "is_public": true
+  },
+  {
+    "song_id": 98,
+    "internal_name": "夜襲",
+    "title": "夜襲",
+    "levels": [
+      "90",
+      "125",
+      "157",
+      "9999"
+    ],
+    "special": "Dlev",
+    "is_public": true
+  },
+  {
+    "song_id": 99,
+    "internal_name": "階段練習曲",
+    "title": "階段練習曲",
+    "levels": [
+      "30",
+      "110",
+      "135",
+      "151"
+    ],
+    "special": "insLock",
+    "is_public": true
+  },
+  {
+    "song_id": 100,
+    "internal_name": "Strike the Despair",
+    "title": "Strike the Despair",
+    "levels": [
+      "30",
+      "80",
+      "130",
+      "138"
+    ],
+    "special": "DlRav",
+    "is_public": true
+  },
+  {
+    "song_id": 101,
+    "internal_name": "Couleur",
+    "title": "Couleur",
+    "levels": [
+      "20",
+      "60",
+      "110",
+      "148"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
+    "song_id": 102,
+    "internal_name": "Azzurro -HardRenaissance Remix-",
+    "title": "Azzurro -HardRenaissance Remix-",
+    "levels": [
+      "50",
+      "100",
+      "138",
+      "9999"
+    ],
+    "special": "N",
+    "is_public": true
+  },
+  {
+    "song_id": 103,
+    "internal_name": "A EaGLE",
+    "title": "A EaGLE",
+    "levels": [
+      "70",
+      "120",
+      "152",
+      "9999"
+    ],
+    "special": "bbDl",
+    "is_public": true
+  },
+  {
+    "song_id": 104,
+    "internal_name": "Grasshopper",
+    "title": "Grasshopper",
+    "levels": [
+      "50",
+      "120",
+      "145",
+      "9999"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
+    "song_id": 105,
+    "internal_name": "Naughty Naughty Angel",
+    "title": "Naughty Naughty Angel",
+    "levels": [
+      "70",
+      "100",
+      "149",
+      "9999"
+    ],
+    "special": "Dlbb",
+    "is_public": true
+  },
+  {
+    "song_id": 106,
+    "internal_name": "Requillio",
+    "title": "Requillio",
+    "levels": [
+      "50",
+      "115",
+      "141",
+      "156"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
+    "song_id": 107,
+    "internal_name": "DiSORDΣR",
+    "title": "DiSORDΣR",
+    "levels": [
+      "60",
+      "100",
+      "130",
+      "140"
+    ],
+    "special": "DlDjac",
+    "is_public": true
+  },
+  {
+    "song_id": 108,
+    "internal_name": "OЯDIN -Apocalyptic War-",
+    "title": "OЯDIN -Apocalyptic War-",
+    "levels": [
+      "80",
+      "120",
+      "138",
+      "153"
+    ],
+    "special": "Djac",
+    "is_public": true
+  },
+  {
+    "song_id": 109,
+    "internal_name": "Left Me Alone",
+    "title": "Left Me Alone",
+    "levels": [
+      "40",
+      "80",
+      "125",
+      "9999"
+    ],
+    "special": "N",
+    "is_public": true
+  },
+  {
+    "song_id": 110,
+    "internal_name": "Europa the Beauty",
+    "title": "Europa the Beauty",
+    "levels": [
+      "50",
+      "115",
+      "142",
+      "9999"
+    ],
+    "special": "n",
+    "is_public": true
+  },
+  {
+    "song_id": 111,
+    "internal_name": "Cyber Entrance",
+    "title": "Cyber Entrance",
+    "levels": [
+      "50",
+      "100",
+      "137",
+      "9999"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
+    "song_id": 112,
+    "internal_name": "Reflect RGB",
+    "title": "Reflect RGB",
+    "levels": [
+      "70",
+      "90",
+      "145",
+      "9999"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
+    "song_id": 113,
+    "internal_name": "Tokyo Haze",
+    "title": "Tokyo Haze",
+    "levels": [
+      "50",
+      "105",
+      "140",
+      "9999"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
+    "song_id": 114,
+    "internal_name": "No-name Requiem",
+    "title": "No-name Requiem",
+    "levels": [
+      "70",
+      "110",
+      "136",
+      "157"
+    ],
+    "special": "DlLbJudge",
+    "is_public": true
+  },
+  {
+    "song_id": 115,
+    "internal_name": "Over Limit",
+    "title": "≠",
+    "levels": [
+      "105",
+      "137",
+      "152",
+      "160"
+    ],
+    "special": "RavbbDl",
+    "is_public": true
+  },
+  {
+    "song_id": 116,
+    "internal_name": "work^work^work^work^work^work",
+    "title": "work^work^work^work^work^work",
+    "levels": [
+      "10",
+      "80",
+      "130",
+      "149"
+    ],
+    "special": "insLockDl",
+    "is_public": true
+  },
+  {
+    "song_id": 118,
+    "internal_name": "Judge the World",
+    "title": "Judge the World",
+    "levels": [
+      "50",
+      "110",
+      "141",
+      "9999"
+    ],
+    "special": "Dlbb",
+    "is_public": true
+  },
+  {
+    "song_id": 119,
+    "internal_name": "黎明の響 -Echo of Dawn-",
+    "title": "黎明の響 -Echo of Dawn-",
+    "levels": [
+      "60",
+      "105",
+      "134",
+      "9999"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
+    "song_id": 120,
+    "internal_name": "Cryout",
+    "title": "Cryout",
+    "levels": [
+      "50",
+      "105",
+      "134",
+      "152"
+    ],
+    "special": "N",
+    "is_public": true
+  },
+  {
+    "song_id": 121,
+    "internal_name": "YRU",
+    "title": "YRU",
+    "levels": [
+      "40",
+      "70",
+      "125",
+      "148"
+    ],
+    "special": "n",
+    "is_public": true
+  },
+  {
+    "song_id": 122,
+    "internal_name": "Get Ready",
+    "title": "Get Ready!!",
+    "levels": [
+      "30",
+      "90",
+      "134",
+      "9999"
+    ],
+    "special": "n",
+    "is_public": true
+  },
+  {
+    "song_id": 123,
+    "internal_name": "YURIKAGO",
+    "title": "YURIKAGO",
+    "levels": [
+      "30",
+      "50",
+      "130",
+      "9999"
+    ],
+    "special": "n",
+    "is_public": true
+  },
+  {
+    "song_id": 124,
+    "internal_name": "EatWav",
+    "title": "Eat.Wav",
+    "levels": [
+      "80",
+      "130",
+      "155",
+      "9999"
+    ],
+    "special": "Dlbbev",
+    "is_public": true
+  },
+  {
+    "song_id": 125,
+    "internal_name": "LiquidSplinter",
+    "title": "LiquidSplinter",
+    "levels": [
+      "50",
+      "110",
+      "138",
+      "150"
+    ],
+    "special": "N",
+    "is_public": true
+  },
+  {
+    "song_id": 126,
+    "internal_name": "Punishment",
+    "title": "Punishment",
+    "levels": [
+      "50",
+      "105",
+      "135",
+      "9999"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
+    "song_id": 127,
+    "internal_name": "Gengaozo",
+    "title": "G e n g a o z o",
+    "levels": [
+      "80",
+      "125",
+      "146",
+      "150"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
+    "song_id": 128,
+    "internal_name": "BanbardPianoVersion",
+    "title": "バンバード ～Piano Version～",
+    "levels": [
+      "20",
+      "70",
+      "115",
+      "139"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
+    "song_id": 129,
+    "internal_name": "BanbardFMShockVersion",
+    "title": "バンバード ～FM Shock Version～",
+    "levels": [
+      "30",
+      "90",
+      "143",
+      "9999"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
+    "song_id": 130,
+    "internal_name": "BanbardsSummer",
+    "title": "Banbard's Summer",
+    "levels": [
+      "50",
+      "100",
+      "137",
+      "151"
+    ],
+    "special": "DlDjac",
+    "is_public": true
+  },
+  {
+    "song_id": 131,
+    "internal_name": "RainyStorm",
+    "title": "Rainy/Storm",
+    "levels": [
+      "50",
+      "120",
+      "143",
+      "9999"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
+    "song_id": 132,
+    "internal_name": "MarionetteLady",
+    "title": "Marionette Lady",
+    "levels": [
+      "20",
+      "80",
+      "142",
+      "149"
+    ],
+    "special": "DlRavDjac",
+    "is_public": true
+  },
+  {
+    "song_id": 133,
+    "internal_name": "Valmung",
+    "title": "Valmung",
+    "levels": [
+      "70",
+      "110",
+      "142",
+      "156"
+    ],
+    "special": "DlRav",
+    "is_public": true
+  },
+  {
+    "song_id": 134,
+    "internal_name": "FaithofEastward",
+    "title": "Faith of Eastward",
+    "levels": [
+      "30",
+      "90",
+      "133",
+      "143"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
+    "song_id": 135,
+    "internal_name": "KiNGFORM",
+    "title": "KiNG FORM -XIII-",
+    "levels": [
+      "70",
+      "115",
+      "150",
+      "9999"
+    ],
+    "special": "N",
+    "is_public": true
+  },
+  {
+    "song_id": 136,
+    "internal_name": "INFiNiTEENERZY",
+    "title": "INFiNiTE ENERZY -Overdoze-",
+    "levels": [
+      "50",
+      "100",
+      "139",
+      "153"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
+    "song_id": 137,
+    "internal_name": "DystopiaRemix",
+    "title": "Get Out Of This Endmost Dystøpia(Halv's \"DISΛSTΣR\" Remix)",
+    "levels": [
+      "60",
+      "125",
+      "141",
+      "9999"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
+    "song_id": 138,
+    "internal_name": "UtopiaRemix",
+    "title": "Connection Destination : Utopia (Nk ( Nekoribo )'s Remix)",
+    "levels": [
+      "30",
+      "90",
+      "141",
+      "9999"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
+    "song_id": 139,
+    "internal_name": "atruthseeker",
+    "title": "a truth seeker -Communication with Utopia will be lost-",
+    "levels": [
+      "80",
+      "133",
+      "159",
+      "9999"
+    ],
+    "special": "N",
+    "is_public": true
+  },
+  {
+    "song_id": 140,
+    "internal_name": "Unshakable",
+    "title": "Unshakable",
+    "levels": [
+      "20",
+      "105",
+      "142",
+      "136"
+    ],
+    "special": "Rav",
+    "is_public": true
+  },
+  {
+    "song_id": 141,
+    "internal_name": "Daydream",
+    "title": "Daydream",
+    "levels": [
+      "50",
+      "110",
+      "120",
+      "147"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
+    "song_id": 142,
+    "internal_name": "Back Out",
+    "title": "Back Out",
+    "levels": [
+      "50",
+      "110",
+      "139",
+      "152"
+    ],
+    "special": "N",
+    "is_public": true
+  },
+  {
+    "song_id": 143,
+    "internal_name": "Lowtech life",
+    "title": "ローテック・ライフ",
+    "levels": [
+      "30",
+      "70",
+      "120",
+      "140"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
+    "song_id": 144,
+    "internal_name": "LAST PROPOZE",
+    "title": "LAST PROPOZE",
+    "levels": [
+      "40",
+      "90",
+      "125",
+      "146"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
+    "song_id": 145,
+    "internal_name": "Gedatsu",
+    "title": "解脱",
+    "levels": [
+      "70",
+      "110",
+      "140",
+      "150"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
+    "song_id": 146,
+    "internal_name": "InterrobanG",
+    "title": "!nterroban(?，",
+    "levels": [
+      "60",
+      "100",
+      "135",
+      "153"
+    ],
+    "special": "insLockDl",
+    "is_public": true
+  },
+  {
+    "song_id": 147,
+    "internal_name": "Signal to the comet",
+    "title": "Signal to the comet",
+    "levels": [
+      "40",
+      "115",
+      "138",
+      "9999"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
+    "song_id": 148,
+    "internal_name": "Espace neige",
+    "title": "Espace neige",
+    "levels": [
+      "50",
+      "105",
+      "146",
+      "9999"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
+    "song_id": 149,
+    "internal_name": "Eltriwm",
+    "title": "Eltriwm",
+    "levels": [
+      "70",
+      "100",
+      "125",
+      "152"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
+    "song_id": 150,
+    "internal_name": "Vela",
+    "title": "Vela",
+    "levels": [
+      "10",
+      "40",
+      "120",
+      "100"
+    ],
+    "special": "DlRav",
+    "is_public": true
+  },
+  {
+    "song_id": 151,
+    "internal_name": "Obscuritas",
+    "title": "Obscuritas",
+    "levels": [
+      "10",
+      "70",
+      "135",
+      "146"
+    ],
+    "special": "N",
+    "is_public": true
+  },
+  {
+    "song_id": 152,
+    "internal_name": "Crossing Dimension",
+    "title": "Crossing Dimension",
+    "levels": [
+      "80",
+      "130",
+      "157",
+      "9999"
+    ],
+    "special": "Dlbb",
+    "is_public": true
+  },
+  {
+    "song_id": 153,
+    "internal_name": "OMG",
+    "title": "OMG",
+    "levels": [
+      "40",
+      "80",
+      "130",
+      "150"
+    ],
+    "special": "DlRavinsLock",
+    "is_public": true
+  },
+  {
+    "song_id": 154,
+    "internal_name": "Floor_of_Lava",
+    "title": "Floor of Lava (TAKUMI³ Edit)",
+    "levels": [
+      "90",
+      "133",
+      "153",
+      "159"
+    ],
+    "special": "insLockDl",
+    "is_public": true
+  },
+  {
+    "song_id": 155,
+    "internal_name": "Do_You_Remember",
+    "title": "Do You Remember?",
+    "levels": [
+      "60",
+      "115",
+      "137",
+      "9999"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
+    "song_id": 156,
+    "internal_name": "Shrinewing",
+    "title": "Shrinewing",
+    "levels": [
+      "20",
+      "80",
+      "120",
+      "136"
+    ],
+    "special": "N",
+    "is_public": true
+  },
+  {
+    "song_id": 157,
+    "internal_name": "Meteorite",
+    "title": "Meteorite",
+    "levels": [
+      "40",
+      "80",
+      "120",
+      "134"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
+    "song_id": 158,
+    "internal_name": "Iris_Re_construct",
+    "title": "Iris/Re:construct",
+    "levels": [
+      "60",
+      "105",
+      "142",
+      "9999"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
+    "song_id": 159,
+    "internal_name": "Sadalmelik",
+    "title": "Sadalmelik",
+    "levels": [
+      "80",
+      "131",
+      "158",
+      "9999"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
+    "song_id": 160,
+    "internal_name": "Finixtahv",
+    "title": "Finixtahv",
+    "levels": [
+      "50",
+      "90",
+      "135",
+      "149"
+    ],
+    "special": "LlRavinsLock",
+    "is_public": true
+  },
+  {
+    "song_id": 161,
+    "internal_name": "Iza_Mairimasu",
+    "title": "いざ、参ります",
+    "levels": [
+      "60",
+      "100",
+      "135",
+      "9999"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
+    "song_id": 162,
+    "internal_name": "VEZZELiX",
+    "title": "VEZZELiX",
+    "levels": [
+      "70",
+      "115",
+      "142",
+      "155"
+    ],
+    "special": "insLock",
+    "is_public": true
+  },
+  {
+    "song_id": 163,
+    "internal_name": "MAZE",
+    "title": "Maze",
+    "levels": [
+      "60",
+      "100",
+      "144",
+      "153"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
+    "song_id": 164,
+    "internal_name": "Tamamocchi",
+    "title": "タマモッチ",
+    "levels": [
+      "30",
+      "90",
+      "138",
+      "148"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
+    "song_id": 165,
+    "internal_name": "Kiyubic",
+    "title": "キユビック",
+    "levels": [
+      "60",
+      "90",
+      "130",
+      "151"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
+    "song_id": 166,
+    "internal_name": "Teumessia",
+    "title": "テウメッサ",
+    "levels": [
+      "80",
+      "125",
+      "138",
+      "149"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
+    "song_id": 167,
+    "internal_name": "Hello_LimitBreak3r",
+    "title": "Hello LimitBreak³r!!!",
+    "levels": [
+      "30",
+      "70",
+      "133",
+      "9999"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
+    "song_id": 168,
+    "internal_name": "Roll_over_Cubic",
+    "title": "Roll over Cubic",
+    "levels": [
+      "20",
+      "60",
+      "110",
+      "133"
+    ],
+    "special": "n",
+    "is_public": true
+  },
+  {
+    "song_id": 169,
+    "internal_name": "ULTRARENDA1",
+    "title": "ULTRARENDA1",
+    "levels": [
+      "50",
+      "100",
+      "148",
+      "9999"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
+    "song_id": 170,
+    "internal_name": "Mr_RENDA",
+    "title": "Mr.RENDA",
+    "levels": [
+      "70",
+      "120",
+      "154",
+      "9999"
+    ],
+    "special": "n",
+    "is_public": true
+  },
+  {
+    "song_id": 171,
+    "internal_name": "RENDA_JOCKEY",
+    "title": "RENDA JOCEKY",
+    "levels": [
+      "60",
+      "115",
+      "136",
+      "154"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
+    "song_id": 172,
+    "internal_name": "Noesis",
+    "title": "Noesis",
+    "levels": [
+      "40",
+      "90",
+      "136",
+      "9999"
+    ],
+    "special": "N",
+    "is_public": true
+  },
+  {
+    "song_id": 173,
+    "internal_name": "NightTheater",
+    "title": "NightTheater",
+    "levels": [
+      "40",
+      "110",
+      "133",
+      "145"
+    ],
+    "special": "DlinsLock",
+    "is_public": true
+  },
+  {
+    "song_id": 174,
+    "internal_name": "Bright_Star_Tactics",
+    "title": "Bright Star Tactics",
+    "levels": [
+      "60",
+      "110",
+      "136",
+      "151"
+    ],
+    "special": "N",
+    "is_public": true
+  },
+  {
+    "song_id": 175,
+    "internal_name": "Yabai-Jan",
+    "title": "Yabai-Jan (Game Edit.)",
+    "levels": [
+      "50",
+      "90",
+      "138",
+      "9999"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
+    "song_id": 176,
+    "internal_name": "Ginsekai",
+    "title": "銀世廻 -Alternative-",
+    "levels": [
+      "50",
+      "90",
+      "144",
+      "9999"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
+    "song_id": 177,
+    "internal_name": "OMG_Halv",
+    "title": "OMG",
+    "levels": [
+      "30",
+      "80",
+      "135",
+      "151"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
+    "song_id": 178,
+    "internal_name": "RESISTANCE",
+    "title": "RESISTANCE",
+    "levels": [
+      "10",
+      "50",
+      "115",
+      "136"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
+    "song_id": 179,
+    "internal_name": "Marble_Rushin",
+    "title": "Marble Rush!n‘",
+    "levels": [
+      "30",
+      "90",
+      "136",
+      "9999"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
+    "song_id": 180,
+    "internal_name": "Rain_Palette",
+    "title": "Rain Palette",
+    "levels": [
+      "20",
+      "60",
+      "110",
+      "9999"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
+    "song_id": 181,
+    "internal_name": "As_the_Wind_Dictates",
+    "title": "As the Wind Dictates",
+    "levels": [
+      "30",
+      "80",
+      "138",
+      "9999"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
+    "song_id": 182,
+    "internal_name": "Still_Be_Will_Be",
+    "title": "Still Be，Will Be",
+    "levels": [
+      "40",
+      "115",
+      "148",
+      "9999"
+    ],
+    "special": "n",
+    "is_public": true
+  },
+  {
+    "song_id": 183,
+    "internal_name": "Crowning_End",
+    "title": "Crowning End",
+    "levels": [
+      "20",
+      "90",
+      "125",
+      "138"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
+    "song_id": 184,
+    "internal_name": "Miracle_Summer_Time",
+    "title": "ミラクルサマータイム(Radio Edit)",
+    "levels": [
+      "30",
+      "70",
+      "110",
+      "141"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
+    "song_id": 185,
+    "internal_name": "FREEDOM_DiVE",
+    "title": "FREEDOM DiVE↓",
+    "levels": [
+      "90",
+      "137",
+      "153",
+      "161"
+    ],
+    "special": "insLockDlev",
+    "is_public": true
+  },
+  {
+    "song_id": 186,
+    "internal_name": "Drop_my_DAW",
+    "title": "Drop my DAW",
+    "levels": [
+      "70",
+      "110",
+      "142",
+      "134"
+    ],
+    "special": "DlRavLlRC",
+    "is_public": true
+  },
+  {
+    "song_id": 187,
+    "internal_name": "Steer_for_Next_Planet",
+    "title": "Steer for Next Planet",
+    "levels": [
+      "30",
+      "100",
+      "130",
+      "9999"
+    ],
+    "special": "n",
+    "is_public": true
+  },
+  {
+    "song_id": 191,
+    "internal_name": "Amaterasu_Rhythm",
+    "title": "天照らす律動",
+    "levels": [
+      "40",
+      "115",
+      "146",
+      "9999"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
+    "song_id": 192,
+    "internal_name": "Grayed_Out",
+    "title": "Grayed Out-Antifront-",
+    "levels": [
+      "60",
+      "110",
+      "142",
+      "155"
+    ],
+    "special": "DlinsLock",
+    "is_public": true
+  },
+  {
+    "song_id": 193,
+    "internal_name": "Gravisphere_Crisis",
+    "title": "Gravisphere Crisis",
+    "levels": [
+      "80",
+      "120",
+      "142",
+      "159"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
+    "song_id": 194,
+    "internal_name": "KERBEROX",
+    "title": "KERBEROX",
+    "levels": [
+      "80",
+      "125",
+      "156",
+      "9999"
+    ],
+    "special": "n",
+    "is_public": true
+  },
+  {
+    "song_id": 195,
+    "internal_name": "Last_Noble_Flame",
+    "title": "Last Noble Flame",
+    "levels": [
+      "50",
+      "100",
+      "149",
+      "9999"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
+    "song_id": 196,
+    "internal_name": "Stay_here",
+    "title": "Stay here",
+    "levels": [
+      "30",
+      "40",
+      "115",
+      "9999"
+    ],
+    "special": "n",
+    "is_public": true
+  },
+  {
+    "song_id": 197,
+    "internal_name": "AWAKE",
+    "title": "A W A K E",
+    "levels": [
+      "60",
+      "90",
+      "132",
+      "148"
+    ],
+    "special": "n",
+    "is_public": true
+  },
+  {
+    "song_id": 198,
+    "internal_name": "OpsLimone",
+    "title": "Ops:Limone -FINAL EX-",
+    "levels": [
+      "60",
+      "90",
+      "140",
+      "151"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
+    "song_id": 199,
+    "internal_name": "From_Nought",
+    "title": "From Nought",
+    "levels": [
+      "70",
+      "120",
+      "143",
+      "157"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
+    "song_id": 200,
+    "internal_name": "10Q",
+    "title": "天Q.",
+    "levels": [
+      "60",
+      "110",
+      "139",
+      "152"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
+    "song_id": 201,
+    "internal_name": "devil_la6ue",
+    "title": "devil¿la6ue",
+    "levels": [
+      "40",
+      "90",
+      "131",
+      "136"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
+    "song_id": 202,
+    "internal_name": "Sekigae_Yatta",
+    "title": "席替えやったー！",
+    "levels": [
+      "40",
+      "80",
+      "115",
+      "145"
+    ],
+    "special": "DlRav",
+    "is_public": true
+  },
+  {
+    "song_id": 203,
+    "internal_name": "Sunset_Toybox",
+    "title": "Sunset Toybox",
+    "levels": [
+      "60",
+      "90",
+      "137",
+      "149"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
+    "song_id": 204,
+    "internal_name": "N3ON",
+    "title": "N3ON",
+    "levels": [
+      "40",
+      "80",
+      "120",
+      "143"
+    ],
+    "special": "Rav",
+    "is_public": true
+  },
+  {
+    "song_id": 205,
+    "internal_name": "TokyoKawaiiBeats",
+    "title": "TokyoKawaiiBeats",
+    "levels": [
+      "20",
+      "70",
+      "132",
+      "9999"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
+    "song_id": 206,
+    "internal_name": "MAGiADR1V3",
+    "title": "MAGiADR1V3",
+    "levels": [
+      "60",
+      "110",
+      "143",
+      "9999"
+    ],
+    "special": "n",
+    "is_public": true
+  },
+  {
+    "song_id": 207,
+    "internal_name": "Nini",
+    "title": "ニニ",
+    "levels": [
+      "20",
+      "80",
+      "125",
+      "145"
+    ],
+    "special": "DlinsLock",
+    "is_public": true
+  },
+  {
+    "song_id": 208,
+    "internal_name": "Plus_Eta",
+    "title": "＋η",
+    "levels": [
+      "70",
+      "115",
+      "147",
+      "9999"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
+    "song_id": 209,
+    "internal_name": "This_is_Jack",
+    "title": "This is Jack",
+    "levels": [
+      "50",
+      "100",
+      "131",
+      "140"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
+    "song_id": 210,
+    "internal_name": "WOLVRAVES",
+    "title": "WOLVRAVES",
+    "levels": [
+      "70",
+      "120",
+      "154",
+      "9999"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
+    "song_id": 211,
+    "internal_name": "Edgelord",
+    "title": "Edgelord",
+    "levels": [
+      "70",
+      "125",
+      "144",
+      "157"
+    ],
+    "special": "bb",
+    "is_public": true
+  },
+  {
+    "song_id": 212,
+    "internal_name": "Flashdance",
+    "title": "Flashdance",
+    "levels": [
+      "20",
+      "80",
+      "125",
+      "147"
+    ],
+    "special": "Rav",
+    "is_public": true
+  },
+  {
+    "song_id": 213,
+    "internal_name": "Rush-More",
+    "title": "Rush-More",
+    "levels": [
+      "50",
+      "90",
+      "120",
+      "142"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
+    "song_id": 214,
+    "internal_name": "Dizzolve",
+    "title": "Dizzolve",
+    "levels": [
+      "80",
+      "120",
+      "143",
+      "155"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
+    "song_id": 215,
+    "internal_name": "Toru_Eden_Ni_Hanatabawo",
+    "title": "透るエデンに花束を",
+    "levels": [
+      "30",
+      "70",
+      "120",
+      "152"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
+    "song_id": 216,
+    "internal_name": "410_Odyssey",
+    "title": "[410]:Odyssey",
+    "levels": [
+      "60",
+      "120",
+      "143",
+      "9999"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
+    "song_id": 217,
+    "internal_name": "Absolute_Disintegration",
+    "title": "Absolute Disintegration",
+    "levels": [
+      "90",
+      "130",
+      "144",
+      "159"
+    ],
+    "special": "n",
+    "is_public": true
+  },
+  {
+    "song_id": 218,
+    "internal_name": "BlueWish",
+    "title": "BlueWish",
+    "levels": [
+      "40",
+      "90",
+      "133",
+      "9999"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
+    "song_id": 219,
+    "internal_name": "Cagliostro_No_Gensokyo",
+    "title": "カリオストロの幻想郷",
+    "levels": [
+      "30",
+      "70",
+      "125",
+      "9999"
+    ],
+    "special": "n",
+    "is_public": true
+  },
+  {
+    "song_id": 220,
+    "internal_name": "Clockwork_Paradox",
+    "title": "Clockwork Paradox",
+    "levels": [
+      "80",
+      "132",
+      "151",
+      "160"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
+    "song_id": 221,
+    "internal_name": "Fafnir",
+    "title": "Fafnir",
+    "levels": [
+      "40",
+      "115",
+      "137",
+      "152"
+    ],
+    "special": "DlinsLock",
+    "is_public": true
+  },
+  {
+    "song_id": 222,
+    "internal_name": "Kamigami_No_Sumau_Teniki",
+    "title": "神々の住まう天域",
+    "levels": [
+      "60",
+      "105",
+      "132",
+      "154"
+    ],
+    "special": "Dlbb",
+    "is_public": true
+  },
+  {
+    "song_id": 223,
+    "internal_name": "LiR_Acanthus",
+    "title": "LiR Acanthus",
+    "levels": [
+      "20",
+      "60",
+      "144",
+      "9999"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
+    "song_id": 224,
+    "internal_name": "maessigkeit",
+    "title": "maessigkeit",
+    "levels": [
+      "50",
+      "110",
+      "146",
+      "9999"
+    ],
+    "special": "n",
+    "is_public": true
+  },
+  {
+    "song_id": 225,
+    "internal_name": "Magic_in_the_travel",
+    "title": "Magic in the travel",
+    "levels": [
+      "20",
+      "60",
+      "130",
+      "9999"
+    ],
+    "special": "n",
+    "is_public": true
+  },
+  {
+    "song_id": 226,
+    "internal_name": "Melody_To_Heaven",
+    "title": "Melody to Heaven",
+    "levels": [
+      "80",
+      "125",
+      "154",
+      "9999"
+    ],
+    "special": "n",
+    "is_public": true
+  },
+  {
+    "song_id": 227,
+    "internal_name": "rest_rest_rest_rest_rest_rest",
+    "title": "rest^rest^rest^rest^rest^rest",
+    "levels": [
+      "40",
+      "80",
+      "138",
+      "9999"
+    ],
+    "special": "DlHlLNMl",
+    "is_public": true
+  },
+  {
+    "song_id": 228,
+    "internal_name": "She_has_gone_out_0f_reach",
+    "title": "She has gone out 0f reach",
+    "levels": [
+      "50",
+      "105",
+      "146",
+      "158"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
+    "song_id": 229,
+    "internal_name": "SO_GRAND",
+    "title": "SO GRAND.",
+    "levels": [
+      "80",
+      "115",
+      "149",
+      "9999"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
+    "song_id": 230,
+    "internal_name": "Sose",
+    "title": "創世",
+    "levels": [
+      "50",
+      "115",
+      "142",
+      "9999"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
+    "song_id": 231,
+    "internal_name": "TRIIIDiM3NXi0NaL",
+    "title": "TRⅢDiM3NXi0NaL",
+    "levels": [
+      "90",
+      "138",
+      "153",
+      "160"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
+    "song_id": 232,
+    "internal_name": "Tsumuzikaze",
+    "title": "飈",
+    "levels": [
+      "70",
+      "132",
+      "159",
+      "9999"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
+    "song_id": 233,
+    "internal_name": "Twinkle_Dreamer",
+    "title": "Twinkle☆Dreamer",
+    "levels": [
+      "70",
+      "115",
+      "144",
+      "156"
+    ],
+    "special": "Dlbb",
+    "is_public": true
+  },
+  {
+    "song_id": 234,
+    "internal_name": "wavelite",
+    "title": "wavelite",
+    "levels": [
+      "20",
+      "50",
+      "138",
+      "9999"
+    ],
+    "special": "n",
+    "is_public": true
+  },
+  {
+    "song_id": 235,
+    "internal_name": "Yoko_No_Kissaten",
+    "title": "妖狐の喫茶店",
+    "levels": [
+      "10",
+      "40",
+      "105",
+      "9999"
+    ],
+    "special": "n",
+    "is_public": true
+  },
+  {
+    "song_id": 237,
+    "internal_name": "VS_MasterCore",
+    "title": "VS. マスターコア",
+    "levels": [
+      "70",
+      "120",
+      "143",
+      "157"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
+    "song_id": 238,
+    "internal_name": "Power_Attack",
+    "title": "Power Attack",
+    "levels": [
+      "50",
+      "115",
+      "138",
+      "151"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
+    "song_id": 239,
+    "internal_name": "OCCHOCO_REST_LESS",
+    "title": "OCCHOCO-REST-LESS",
+    "levels": [
+      "40",
+      "100",
+      "132",
+      "145"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
+    "song_id": 240,
+    "internal_name": "Igallta",
+    "title": "Igallta",
+    "levels": [
+      "70",
+      "130",
+      "143",
+      "155"
+    ],
+    "special": "DlinsLock",
+    "is_public": true
+  },
+  {
+    "song_id": 241,
+    "internal_name": "Distorted_Fate",
+    "title": "Distorted Fate",
+    "levels": [
+      "80",
+      "131",
+      "152",
+      "159"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
+    "song_id": 242,
+    "internal_name": "NO_ONE_YES_MAN",
+    "title": "NO ONE YES MAN",
+    "levels": [
+      "50",
+      "80",
+      "132",
+      "143"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
+    "song_id": 243,
+    "internal_name": "Luminescence",
+    "title": "Luminescence",
+    "levels": [
+      "50",
+      "90",
+      "137",
+      "147"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
+    "song_id": 244,
+    "internal_name": "Traxxendenza",
+    "title": "Traxxendenza",
+    "levels": [
+      "105",
+      "141",
+      "153",
+      "163"
+    ],
+    "special": "Dlbc28-240bcMask",
+    "is_public": true
+  },
+  {
+    "song_id": 245,
+    "internal_name": "SAMBISTA",
+    "title": "SAMBISTA",
+    "levels": [
+      "30",
+      "90",
+      "132",
+      "146"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
+    "song_id": 246,
+    "internal_name": "BPM=BPM+1",
+    "title": "BPM = BPM + 1",
+    "levels": [
+      "80",
+      "125",
+      "149",
+      "153"
+    ],
+    "special": "bc100-300bcDl",
+    "is_public": true
+  },
+  {
+    "song_id": 249,
+    "internal_name": "Dead_AND_Alive",
+    "title": "Dead AND Alive!",
+    "levels": [
+      "50",
+      "105",
+      "146",
+      "9999"
+    ],
+    "special": "bc192-205bcDl",
+    "is_public": true
+  },
+  {
+    "song_id": 250,
+    "internal_name": "Hanabi_No_Tameno_Gensokyoku",
+    "title": "花火のための幻想曲",
+    "levels": [
+      "40",
+      "110",
+      "143",
+      "158"
+    ],
+    "special": "bc33-333bc",
+    "is_public": true
+  },
+  {
+    "song_id": 251,
+    "internal_name": "Iris_Out_De_Sayonara",
+    "title": "アイリス・アウトでさようなら",
+    "levels": [
+      "50",
+      "105",
+      "139",
+      "154"
+    ],
+    "special": "bc60-166bcDlRav",
+    "is_public": true
+  },
+  {
+    "song_id": 252,
+    "internal_name": "utakata_no_gemini",
+    "title": "泡沫のジェミニ",
+    "levels": [
+      "70",
+      "110",
+      "149",
+      "9999"
+    ],
+    "special": "n",
+    "is_public": true
+  },
+  {
+    "song_id": 253,
+    "internal_name": "bokyo_no_odyssey",
+    "title": "望郷のオデッセイ",
+    "levels": [
+      "50",
+      "100",
+      "135",
+      "9999"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
+    "song_id": 254,
+    "internal_name": "ranryu",
+    "title": "嵐柳",
+    "levels": [
+      "60",
+      "100",
+      "132",
+      "155"
+    ],
+    "special": "bc205-240bcDl",
+    "is_public": true
+  },
+  {
+    "song_id": 255,
+    "internal_name": "Stratostrider",
+    "title": "Stratostrider",
+    "levels": [
+      "40",
+      "105",
+      "145",
+      "160"
+    ],
+    "special": "DlinsLockRav",
+    "is_public": true
+  },
+  {
+    "song_id": 256,
+    "internal_name": "Ka_Ki_Ku_Ke_Caution",
+    "title": "かきくけこーしょん",
+    "levels": [
+      "60",
+      "100",
+      "142",
+      "9999"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
+    "song_id": 257,
+    "internal_name": "Moonstone",
+    "title": "Moonstone",
+    "levels": [
+      "10",
+      "70",
+      "146",
+      "9999"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
+    "song_id": 258,
+    "internal_name": "Bamboo",
+    "title": "竹",
+    "levels": [
+      "60",
+      "115",
+      "143",
+      "153"
+    ],
+    "special": "RavDlbc5-315bc",
+    "is_public": true
+  },
+  {
+    "song_id": 259,
+    "internal_name": "Observable_Universe",
+    "title": "3.566×10^80m³",
+    "levels": [
+      "80",
+      "131",
+      "152",
+      "161"
+    ],
+    "special": "DlinsLockbc88-196bc",
+    "is_public": true
+  },
+  {
+    "song_id": 260,
+    "internal_name": "Juventas",
+    "title": "JUVEN+",
+    "levels": [
+      "80",
+      "125",
+      "149",
+      "157"
+    ],
+    "special": "DlNoRndinsLock",
+    "is_public": true
+  },
+  {
+    "song_id": 261,
+    "internal_name": "Ardent_Gaff",
+    "title": "Ardent Gaff",
+    "levels": [
+      "70",
+      "110",
+      "150",
+      "159"
+    ],
+    "special": "insLockNoRnd",
+    "is_public": true
+  },
+  {
+    "song_id": 262,
+    "internal_name": "BRAIN_POWER",
+    "title": "Brain Power",
+    "levels": [
+      "40",
+      "100",
+      "136",
+      "147"
+    ],
+    "special": "Dlbc170-173bc",
+    "is_public": true
+  },
+  {
+    "song_id": 265,
+    "internal_name": "Bright_red_hertz",
+    "title": "Bright red hertz",
+    "levels": [
+      "50",
+      "100",
+      "136",
+      "152"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
+    "song_id": 266,
+    "internal_name": "Grayscale_Tragedy",
+    "title": "Grayscale Tragedy",
+    "levels": [
+      "60",
+      "105",
+      "140",
+      "9999"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
+    "song_id": 267,
+    "internal_name": "HATEN_CODE_583",
+    "title": "HATEN CODE 583",
+    "levels": [
+      "60",
+      "105",
+      "135",
+      "152"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
+    "song_id": 268,
+    "internal_name": "wheel_of_4_tune",
+    "title": "Wheel of 4 Tune",
+    "levels": [
+      "70",
+      "115",
+      "145",
+      "156"
+    ],
+    "special": "DlinsLock",
+    "is_public": true
+  },
+  {
+    "song_id": 270,
+    "internal_name": "Awaken_in_Ruins",
+    "title": "Awaken In Ruins",
+    "levels": [
+      "30",
+      "60",
+      "130",
+      "144"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
+    "song_id": 271,
+    "internal_name": "Cybernetic_Vampire",
+    "title": "Cybernetic Vampire",
+    "levels": [
+      "40",
+      "90",
+      "142",
+      "157"
+    ],
+    "special": "DlDhlRav",
+    "is_public": true
+  },
+  {
+    "song_id": 272,
+    "internal_name": "Echoes_of_the_Forest",
+    "title": "Echoes of the Forest",
+    "levels": [
+      "60",
+      "115",
+      "142",
+      "9999"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
+    "song_id": 284,
+    "internal_name": "Erinnerung",
+    "title": "Erinnerung",
+    "levels": [
+      "70",
+      "115",
+      "138",
+      "154"
+    ],
+    "special": "n",
+    "is_public": true
+  },
+  {
+    "song_id": 289,
+    "internal_name": "HOPE",
+    "title": "HOPE",
+    "levels": [
+      "50",
+      "105",
+      "133",
+      "150"
+    ],
+    "special": "DlinsLock",
+    "is_public": true
+  },
+  {
+    "song_id": 292,
+    "internal_name": "Omniverse",
+    "title": "Omniverse",
+    "levels": [
+      "40",
+      "100",
+      "131",
+      "144"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
+    "song_id": 293,
+    "internal_name": "Our_Red",
+    "title": "Our Red",
+    "levels": [
+      "50",
+      "105",
+      "133",
+      "142"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
+    "song_id": 296,
+    "internal_name": "Teravolt",
+    "title": "Teravolt",
+    "levels": [
+      "50",
+      "120",
+      "142",
+      "156"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
+    "song_id": 298,
+    "internal_name": "Voyager",
+    "title": "Voyager ─24，000，000，000km─",
+    "levels": [
+      "50",
+      "110",
+      "139",
+      "9999"
+    ],
+    "special": "bc95-190bcDl",
+    "is_public": true
+  },
+  {
+    "song_id": 300,
+    "internal_name": "Omoide_Ha_Toku",
+    "title": "夏空は何色",
+    "levels": [
+      "40",
+      "80",
+      "138",
+      "9999"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
+    "song_id": 305,
+    "internal_name": "Orhidea",
+    "title": "Ορχιδέα",
+    "levels": [
+      "40",
+      "90",
+      "134",
+      "9999"
+    ],
+    "special": "n",
+    "is_public": true
+  },
+  {
+    "song_id": 316,
+    "internal_name": "LOOP",
+    "title": "#LOOP",
+    "levels": [
+      "20",
+      "70",
+      "142",
+      "9999"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
+    "song_id": 318,
+    "internal_name": "Otonani_Narenakatta_Kodomotachi",
+    "title": "大人になれなかった子供たち (Reunion)",
+    "levels": [
+      "30",
+      "60",
+      "115",
+      "9999"
+    ],
+    "special": "Dlbc48-102bc",
+    "is_public": true
+  },
+  {
+    "song_id": 322,
+    "internal_name": "Butterfly_Specimen",
+    "title": "チョウの標本",
+    "levels": [
+      "30",
+      "120",
+      "143",
+      "153"
+    ],
+    "special": "DlDhlRav",
+    "is_public": true
+  },
+  {
+    "song_id": 323,
+    "internal_name": "Ondan_Chozin_Goriraiza",
+    "title": "音弾超人ゴリライザー",
+    "levels": [
+      "30",
+      "80",
+      "130",
+      "146"
+    ],
+    "special": "DlRav",
+    "is_public": true
+  },
+  {
+    "song_id": 324,
+    "internal_name": "Angel_dust",
+    "title": "Angel dust",
+    "levels": [
+      "80",
+      "130",
+      "147",
+      "157"
+    ],
+    "special": "DlinsLock",
+    "is_public": true
+  },
+  {
+    "song_id": 325,
+    "internal_name": "Asterhythm",
+    "title": "Asterhythm",
+    "levels": [
+      "10",
+      "30",
+      "90",
+      "9999"
+    ],
+    "special": "Dl",
+    "is_public": true
+  }
+]

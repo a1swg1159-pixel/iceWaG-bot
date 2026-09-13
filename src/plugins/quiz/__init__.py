@@ -12,7 +12,7 @@ from nonebot.log import logger
 from nonebot.params import CommandArg
 from nonebot.rule import Rule
 
-from src.common import at_me_only, random_delay as rdelay
+from src.common import at_me_only, main_group_only, random_delay as rdelay
 from src.common import scheduler, get_target_groups
 
 DATA_DIR = Path("data")
@@ -111,7 +111,9 @@ def format_question(q: dict) -> str:
 
 # ====== 指令 ======
 
-quiz_cmd = on_command("答题", priority=10, block=True, rule=at_me_only)
+quiz_cmd = on_command(
+    "答题", priority=10, block=True, rule=main_group_only & at_me_only,
+)
 
 LABELS = ["A", "B", "C", "D"]
 
@@ -255,7 +257,11 @@ async def _bare_answer_check(event: GroupMessageEvent) -> bool:
     return text in LABELS
 
 
-bare_answer = on_message(Rule(_bare_answer_check) & at_me_only, priority=20, block=False)
+bare_answer = on_message(
+    Rule(_bare_answer_check) & main_group_only & at_me_only,
+    priority=20,
+    block=False,
+)
 
 
 @bare_answer.handle()
