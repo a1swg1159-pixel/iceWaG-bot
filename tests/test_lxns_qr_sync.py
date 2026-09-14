@@ -8,6 +8,8 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 from urllib.parse import parse_qs, urlparse
 
+from src.secret_redaction import redact_sensitive_text
+
 ROOT = Path(__file__).parents[1]
 
 
@@ -25,8 +27,6 @@ oauth = _load_module(
 sync = _load_module(
     "maimai_qr_sync_test", ROOT / "src" / "plugins" / "maimai_b50" / "sync.py"
 )
-
-
 class _Level(Enum):
     MASTER = 3
 
@@ -62,8 +62,14 @@ class LxnsOAuthTests(unittest.TestCase):
         self.assertEqual(query["code_challenge_method"], ["S256"])
         self.assertTrue(query["code_challenge"][0])
 
-
 class MaimaiQrPayloadTests(unittest.TestCase):
+    def test_qr_is_redacted_from_logs(self):
+        qr = "SGWCMAID" + "A" * 40
+        self.assertEqual(
+            redact_sensitive_text(f"message: /mai upd {qr}"),
+            "message: /mai upd SGWCMAID[REDACTED]",
+        )
+
     def test_qr_validation_does_not_accept_urls_or_short_values(self):
         with self.assertRaises(sync.MaimaiQrSyncError):
             sync.normalize_qr_string("https://example.com/SGWCMAIDabc")
@@ -108,14 +114,19 @@ class MaimaiQrPipelineTests(unittest.IsolatedAsyncioTestCase):
         qr = "SGWCMAID" + "A" * 40
         fetch = AsyncMock(return_value=[score])
         upload = AsyncMock(return_value=1)
+        verify = AsyncMock(return_value=1)
         with patch.object(sync, "_fetch_arcade_scores", fetch), patch.object(
             sync, "_upload_scores", upload
-        ):
+        ), patch.object(sync, "_verify_uploaded_scores", verify):
             result = await sync.sync_maimai_qrcode_to_lxns(qr, "Bearer token")
 
-        self.assertEqual(result, sync.MaimaiQrSyncResult(fetched=1, uploaded=1))
+        self.assertEqual(
+            result,
+            sync.MaimaiQrSyncResult(fetched=1, uploaded=1, verified=1),
+        )
         fetch.assert_awaited_once_with(qr, None)
         upload.assert_awaited_once()
+        verify.assert_awaited_once()
 
 
 if __name__ == "__main__":

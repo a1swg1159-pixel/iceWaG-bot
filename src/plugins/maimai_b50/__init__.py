@@ -8,6 +8,7 @@ from nonebot.adapters.onebot.v11 import MessageEvent, MessageSegment
 from nonebot.params import CommandArg
 
 from src.common import at_me_only, random_delay
+from src.score_level_query import LevelQueryError, parse_level_query
 from src.plugins.chunithm_b30.oauth import (
     create_authorization_url,
     exchange_authorization_code,
@@ -17,7 +18,10 @@ from src.plugins.chunithm_b30.oauth import (
     PUBLIC_CLIENT_ID,
     remove_oauth_binding,
 )
-from .core import generate_maimai_b50_image, get_maimai_player
+from .core import (
+    generate_maimai_b50_image, generate_maimai_score_list_images,
+    get_maimai_player,
+)
 from .sync import MaimaiQrSyncError, sync_maimai_qrcode_to_lxns
 
 
@@ -66,8 +70,9 @@ async def handle_mai(event: MessageEvent, args=CommandArg()):
             "/mai bind - 获取 LXNS OAuth 授权链接\n"
             "/mai bind <授权码> - 完成绑定\n"
             "/mai unbind - 解除共享的 LXNS 授权\n"
-            "/mai 更新 <机台扫码字符串> - 拉取当前成绩并写入 LXNS（私聊）\n"
+            "/mai upd <SGWCMAID> - 拉取当前成绩并写入 LXNS（私聊）\n"
             "/mai b50 - 生成舞萌 DX Best 50\n"
+            "/mai score <任意等级或定数> - 生成该档成绩列表\n"
             "——————————————\n"
             "💡 与 /chu 共用 OAuth，请在私聊中完成授权。"
         )
@@ -131,23 +136,23 @@ async def handle_mai(event: MessageEvent, args=CommandArg()):
             )
         await mai_cmd.finish(MessageSegment.at(user_id) + "\n你还没有绑定。")
 
-    if sub in ("更新", "update"):
+    if sub == "upd":
         if event.message_type != "private":
             await mai_cmd.finish(
                 MessageSegment.at(user_id)
                 + "\n机台二维码字符串属于敏感凭据，请私聊 Bot 发送 "
-                "/mai 更新 <机台扫码字符串>。"
+                "/mai upd <SGWCMAID>。"
             )
         if not sub_args.strip():
             await mai_cmd.finish(
                 MessageSegment.at(user_id)
-                + "\n请发送 /mai 更新 <SGWCMAID 开头的完整机台扫码字符串>。"
+                + "\n请发送 /mai upd <SGWCMAID 开头的完整机台扫码字符串>。"
             )
         if not has_oauth_scope(user_id, "write_player"):
             await mai_cmd.finish(
                 MessageSegment.at(user_id)
                 + "\n当前 LXNS 授权不含 write_player。请先重新发送 /mai bind，"
-                "在新链接中授权后再更新。"
+                "在新链接中授权后再使用 /mai upd。"
             )
         credential, error = await _resolve_credential(user_id)
         if not credential:
@@ -184,10 +189,22 @@ async def handle_mai(event: MessageEvent, args=CommandArg()):
         await mai_cmd.finish(
             MessageSegment.at(user_id)
             + f"\n更新完成：从机台读取 {result.fetched} 条，向 LXNS 写入 "
-            f"{result.uploaded} 条成绩。现在可发送 /mai b50 查分。"
+            f"{result.uploaded} 条，并读回确认 {result.verified} 条。"
+            "现在可发送 /mai b50 查分。"
         )
 
-    if sub != "b50":
+    if sub == "score":
+        if not sub_args.strip():
+            await mai_cmd.finish(
+                MessageSegment.at(user_id)
+                + "\n请发送 /mai score <任意等级或定数>；整数、+档和一位小数均支持。"
+            )
+        try:
+            parse_level_query(sub_args)
+        except LevelQueryError as exc:
+            await mai_cmd.finish(MessageSegment.at(user_id) + f"\n参数错误：{exc}。")
+
+    if sub not in ("b50", "score"):
         await mai_cmd.finish(
             MessageSegment.at(user_id)
             + f"\n没有 {sub} 这个指令。发送 /mai 查看可用子命令。"
@@ -199,6 +216,32 @@ async def handle_mai(event: MessageEvent, args=CommandArg()):
             MessageSegment.at(user_id)
             + f"\n无法读取授权：{error}。请先发送 /mai bind。"
         )
+
+    if sub == "score":
+        await mai_cmd.send(f"正在生成 Lv.{sub_args.strip()} 成绩列表...稍等喵。")
+        result = await asyncio.to_thread(
+            generate_maimai_score_list_images,
+            credential, OUTPUT_DIR, user_id, sub_args,
+        )
+        if result is None:
+            await mai_cmd.finish(
+                MessageSegment.at(user_id)
+                + "\n数据获取失败，请重新同步 LXNS 成绩或使用 /mai bind 重新授权。"
+            )
+        image_paths, matched = result
+        if not image_paths:
+            await mai_cmd.finish(
+                MessageSegment.at(user_id)
+                + f"\n没有找到 Lv.{sub_args.strip()} 的已游玩成绩。"
+            )
+        for index, image_path in enumerate(image_paths, start=1):
+            await mai_cmd.send(
+                MessageSegment.at(user_id)
+                + "\n"
+                + MessageSegment.image(image_path.resolve().as_uri())
+                + f"\nLv.{sub_args.strip()} 成绩列表 {index}/{len(image_paths)}"
+            )
+        await mai_cmd.finish(f"共找到 {matched} 张谱面的成绩。")
 
     await mai_cmd.send("舞萌 DX B50 生成中...稍等喵。")
     image_path = await asyncio.to_thread(

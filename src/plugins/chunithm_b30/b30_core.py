@@ -11,6 +11,7 @@ import requests
 from PIL import Image, ImageDraw, ImageEnhance, ImageFilter, ImageFont, ImageOps
 
 from src.image_credit import append_image_credit
+from src.score_level_query import LevelQuery, matches_level_query, parse_level_query
 
 
 BASE_URL = "https://maimai.lxns.net"
@@ -1176,6 +1177,7 @@ B50_CARD_H = 236
 B50_CARD_GAP_X = 22
 B50_CARD_GAP_Y = 22
 B50_SECTION_HEADER_H = 112
+SCORE_LIST_PAGE_SIZE = 50
 B50_OLD_ACCENT = (239, 79, 45)
 B50_NEW_ACCENT = (16, 177, 191)
 B50_TEXT = (20, 21, 23)
@@ -1683,6 +1685,116 @@ def generate_b50_image(
     bg = Path("data") / "b30_assets" / "bg.png"
     save = output_dir / f"b50_{user_id}_{int(b50 * 100):04d}.png"
     return create_b50_style_image(player, old, new, b50, save, bg)
+
+
+def _chunithm_constant(score: Score) -> Optional[float]:
+    if not score.level_is_constant:
+        return None
+    try:
+        return float(score.final_level)
+    except (TypeError, ValueError):
+        return None
+
+
+def _chunithm_score_matches(score: Score, query: LevelQuery) -> bool:
+    return matches_level_query(
+        query,
+        display_level=score.raw_level,
+        constant=_chunithm_constant(score),
+        plus_threshold=0.5,
+    )
+
+
+def create_chunithm_score_list_images(
+    player: Player,
+    scores: List[Score],
+    query: LevelQuery,
+    output_dir: Path,
+    user_id: str,
+) -> List[Path]:
+    """Render matched records as one or more B50-style contact sheets."""
+    page_count = max(1, math.ceil(len(scores) / SCORE_LIST_PAGE_SIZE))
+    timestamp = time.time_ns()
+    paths: List[Path] = []
+    background = Path("data") / "b30_assets" / "bg.png"
+    average = sum(score.rating_floor for score in scores) / len(scores)
+
+    for page_index in range(page_count):
+        page_scores = scores[
+            page_index * SCORE_LIST_PAGE_SIZE:(page_index + 1) * SCORE_LIST_PAGE_SIZE
+        ]
+        rows = max(1, math.ceil(len(page_scores) / CARD_COLUMNS))
+        panel_y = B50_HEADER_H + 10
+        panel_h = (
+            B50_SECTION_HEADER_H + rows * B50_CARD_H
+            + max(0, rows - 1) * B50_CARD_GAP_Y + 24
+        )
+        canvas_h = panel_y + panel_h + 24
+        if background.exists():
+            try:
+                canvas = Image.open(background).resize(
+                    (B50_W, canvas_h), Image.LANCZOS
+                ).convert("RGBA")
+            except Exception:
+                canvas = Image.new("RGBA", (B50_W, canvas_h), (18, 20, 35, 255))
+        else:
+            canvas = Image.new("RGBA", (B50_W, canvas_h), (18, 20, 35, 255))
+
+        _prepare_b50_background(canvas)
+        _draw_b50_header(
+            canvas, player, player.rating_floor, average, 0.0,
+            report_title="SCORE LIST", summary_title=query.label,
+            old_label="AVG RT", new_label="",
+        )
+        _draw_b50_section_panel(
+            canvas, panel_y, panel_h,
+            f"LEVEL {query.label}  {page_index + 1}/{page_count}",
+            len(scores), average, B50_NEW_ACCENT,
+        )
+        cards_y = panel_y + B50_SECTION_HEADER_H
+        for local_index, score in enumerate(page_scores):
+            row, column = divmod(local_index, CARD_COLUMNS)
+            x = B50_CARD_START_X + column * (B50_CARD_W + B50_CARD_GAP_X)
+            y = cards_y + row * (B50_CARD_H + B50_CARD_GAP_Y)
+            global_index = page_index * SCORE_LIST_PAGE_SIZE + local_index
+            _draw_b50_card(canvas, score, x, y, global_index)
+
+        path = output_dir / (
+            f"chu_score_{user_id}_{query.label.replace('+', 'p')}_"
+            f"{timestamp}_{page_index + 1}.png"
+        )
+        path.parent.mkdir(parents=True, exist_ok=True)
+        canvas = append_image_credit(canvas, get_b50_ui_font(22))
+        canvas.save(path, quality=95)
+        paths.append(path)
+    return paths
+
+
+def generate_chunithm_score_list_images(
+    credential: str, output_dir: Path, user_id: str, query_text: str,
+) -> Optional[Tuple[List[Path], int]]:
+    requests.packages.urllib3.disable_warnings()
+    cleanup_old_images(output_dir)
+    query = parse_level_query(query_text)
+    fetch_all_songs_data()
+    player = get_player_info(credential)
+    scores = get_all_player_scores(credential)
+    if not player or scores is None:
+        return None
+    matched = [score for score in scores if _chunithm_score_matches(score, query)]
+    matched.sort(
+        key=lambda score: (
+            _chunithm_constant(score) or 0.0,
+            score.score,
+            score.rating_floor,
+        ),
+        reverse=True,
+    )
+    if not matched:
+        return [], 0
+    return create_chunithm_score_list_images(
+        player, matched, query, output_dir, user_id,
+    ), len(matched)
 
 
 # ===================================================================

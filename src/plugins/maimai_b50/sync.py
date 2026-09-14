@@ -23,6 +23,7 @@ class MaimaiQrSyncError(RuntimeError):
 class MaimaiQrSyncResult:
     fetched: int
     uploaded: int
+    verified: int
 
 
 def normalize_qr_string(value: str) -> str:
@@ -136,6 +137,72 @@ async def _upload_scores(
     return uploaded
 
 
+def _score_key(score: Mapping[str, Any]) -> tuple[int, str, int]:
+    return (
+        int(score["id"]),
+        str(score["type"]),
+        int(score["level_index"]),
+    )
+
+
+async def _verify_uploaded_scores(
+    credential: str, uploaded_scores: Iterable[Mapping[str, Any]]
+) -> int:
+    """Read scores back from LXNS and confirm it retained equal-or-better values."""
+    expected_items = list(uploaded_scores)
+    try:
+        async with httpx.AsyncClient(timeout=30) as client:
+            response = await client.get(
+                LXNS_SCORES_URL, headers={"Authorization": credential}
+            )
+    except httpx.HTTPError as exc:
+        raise MaimaiQrSyncError(
+            "成绩已提交，但连接 LXNS 读回验证接口失败"
+        ) from exc
+    if response.is_error:
+        raise MaimaiQrSyncError(
+            f"成绩已提交，但 LXNS 读回验证失败：{_response_error(response)}"
+        )
+    try:
+        payload = response.json()
+        stored_items = payload.get("data") or []
+    except Exception as exc:
+        raise MaimaiQrSyncError("成绩已提交，但 LXNS 读回数据格式异常") from exc
+    if not isinstance(stored_items, list):
+        raise MaimaiQrSyncError("成绩已提交，但 LXNS 读回数据格式异常")
+
+    stored = {}
+    for item in stored_items:
+        if not isinstance(item, dict):
+            continue
+        try:
+            stored[_score_key(item)] = item
+        except (KeyError, TypeError, ValueError):
+            continue
+
+    verified = 0
+    for expected in expected_items:
+        try:
+            actual = stored.get(_score_key(expected))
+            if not actual:
+                continue
+            achievement_ok = float(actual.get("achievements") or 0) + 0.0001 >= float(
+                expected.get("achievements") or 0
+            )
+            dx_score_ok = int(actual.get("dx_score") or 0) >= int(
+                expected.get("dx_score") or 0
+            )
+            if achievement_ok and dx_score_ok:
+                verified += 1
+        except (TypeError, ValueError):
+            continue
+    if verified != len(expected_items):
+        raise MaimaiQrSyncError(
+            f"成绩已提交，但仅从 LXNS 读回确认 {verified} 条"
+        )
+    return verified
+
+
 async def sync_maimai_qrcode_to_lxns(
     qr_value: str, credential: str, http_proxy: str | None = None,
 ) -> MaimaiQrSyncResult:
@@ -151,4 +218,7 @@ async def sync_maimai_qrcode_to_lxns(
     if not payloads:
         raise MaimaiQrSyncError("二维码解析成功，但没有取得可上传的舞萌成绩")
     uploaded = await _upload_scores(credential, payloads)
-    return MaimaiQrSyncResult(fetched=len(raw_scores), uploaded=uploaded)
+    verified = await _verify_uploaded_scores(credential, payloads)
+    return MaimaiQrSyncResult(
+        fetched=len(raw_scores), uploaded=uploaded, verified=verified
+    )

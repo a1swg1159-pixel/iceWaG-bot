@@ -10,11 +10,13 @@ import requests
 from PIL import Image, ImageDraw, ImageFont
 
 from src.image_credit import append_image_credit
+from src.score_level_query import LevelQuery, matches_level_query, parse_level_query
 
 BASE_URL = "https://maimai.lxns.net"
 ASSET_BASES = ("https://assets2.lxns.net", "https://assets.lxns.net")
 PLAYER_URL = f"{BASE_URL}/api/v0/user/maimai/player"
 BESTS_URL = f"{PLAYER_URL}/bests"
+SCORES_URL = f"{PLAYER_URL}/scores"
 SONGS_URL = f"{BASE_URL}/api/v0/maimai/song/list"
 
 CANVAS_W, CANVAS_H = 3000, 3160
@@ -24,6 +26,7 @@ SECTION_HEADER_H = 112
 CARD_W, CARD_H = 568, 236
 CARD_GAP_X, CARD_GAP_Y = 22, 22
 CARD_START_X = 40
+SCORE_LIST_PAGE_SIZE = 50
 PAPER = (238, 235, 225)
 INK = (20, 21, 23)
 MUTED = (151, 154, 158)
@@ -260,6 +263,7 @@ class MaimaiScore:
             data.get("level_value") or data.get("constant") or data.get("ds")
             or chart.get("level_value") or chart.get("constant") or chart.get("ds")
         )
+        self.display_level = str(data.get("level") or chart.get("level") or "").strip()
         try:
             self.level_value = float(raw_level)
             self.level = f"{self.level_value:.1f}"
@@ -343,19 +347,37 @@ def get_maimai_bests(
         return None
 
 
+def get_all_maimai_scores(credential: str) -> Optional[List[MaimaiScore]]:
+    """Fetch the authorized player's complete best-score cache from LXNS."""
+    try:
+        response = requests.get(SCORES_URL, headers=_headers(credential), timeout=25)
+        response.raise_for_status()
+        payload: Any = response.json()
+        rows: Any = payload.get("data", payload) if isinstance(payload, dict) else payload
+        if isinstance(rows, dict):
+            rows = rows.get("scores", [])
+        if not isinstance(rows, list):
+            return None
+        catalog = _load_song_catalog()
+        return [MaimaiScore(item, catalog) for item in rows if isinstance(item, dict)]
+    except Exception:
+        return None
+
+
 def _draw_background(canvas: Image.Image) -> None:
     draw = ImageDraw.Draw(canvas)
-    draw.rectangle((0, 0, CANVAS_W, CANVAS_H), fill=PAPER)
-    for x, y in ((18, 18), (CANVAS_W - 18, 18), (18, CANVAS_H - 18),
-                 (CANVAS_W - 18, CANVAS_H - 18)):
-        sx = 1 if x < CANVAS_W // 2 else -1
-        sy = 1 if y < CANVAS_H // 2 else -1
+    width, height = canvas.size
+    draw.rectangle((0, 0, width, height), fill=PAPER)
+    for x, y in ((18, 18), (width - 18, 18), (18, height - 18),
+                 (width - 18, height - 18)):
+        sx = 1 if x < width // 2 else -1
+        sy = 1 if y < height // 2 else -1
         draw.line((x, y, x + sx * 70, y), fill=INK, width=3)
         draw.line((x, y, x, y + sy * 70), fill=INK, width=3)
     for row in range(7):
         for col in range(15 - row):
-            x = CANVAS_W - 38 - col * 22
-            y = CANVAS_H - 38 - row * 22
+            x = width - 38 - col * 22
+            y = height - 38 - row * 22
             draw.ellipse((x - 3, y - 3, x + 3, y + 3), fill=(117, 113, 104))
 
 
@@ -405,9 +427,60 @@ def _draw_header(
     draw.text((2548, 46), "B50", fill=INK, font=get_section_font(120))
 
 
+def _draw_score_list_header(
+    canvas: Image.Image, player: MaimaiPlayer, query: LevelQuery,
+    total_count: int, page: int, page_count: int,
+) -> None:
+    draw = ImageDraw.Draw(canvas)
+    panel = (MARGIN, 18, CANVAS_W - MARGIN, 250)
+    draw.rectangle(panel, fill=INK)
+    draw.rectangle((panel[0], panel[1], panel[0] + 14, panel[3]), fill=NEW_ACCENT)
+    draw.rectangle((panel[0], panel[3] - 12, 1750, panel[3]), fill=OLD_ACCENT)
+    draw.rectangle((1750, panel[3] - 12, panel[2], panel[3]), fill=NEW_ACCENT)
+
+    icon_size = 158
+    icon_x, icon_y = 62, 48
+    icon = player.load_icon()
+    player_x = 252 if icon is not None else 62
+    if icon is not None:
+        icon = icon.resize((icon_size, icon_size), Image.Resampling.LANCZOS)
+        draw.rectangle((icon_x - 5, icon_y - 5,
+                        icon_x + icon_size + 4, icon_y + icon_size + 4), fill=PAPER)
+        canvas.paste(icon, (icon_x, icon_y), icon if icon.mode == "RGBA" else None)
+        draw.rectangle((icon_x - 5, icon_y - 5,
+                        icon_x + icon_size + 4, icon_y + icon_size + 4), outline=PAPER, width=4)
+        draw.rectangle((icon_x - 10, icon_y + icon_size + 8,
+                        icon_x + icon_size + 10, icon_y + icon_size + 14), fill=OLD_ACCENT)
+
+    draw.text((player_x + 2, 38), "MAIMAI DX  /  SCORE LIST", fill=NEW_ACCENT,
+              font=get_b50_ui_font(29))
+    player_font = get_song_font(63)
+    player_name = truncate_text_by_width(player.name, player_font, 1160 - player_x)
+    draw.text((player_x, 78), player_name, fill=PAPER, font=player_font)
+    if player.trophy:
+        trophy = truncate_text_by_width(player.trophy, get_font(28), 870)
+        draw.text((player_x, 169), trophy, fill=(205, 207, 209), font=get_font(28))
+
+    draw.rectangle((1192, 36, 1200, 216), fill=OLD_ACCENT)
+    draw.text((1250, 34), "DX RATING", fill=MUTED, font=get_b50_ui_font(26))
+    draw.text((1242, 72), str(player.rating), fill=PAPER, font=get_b50_number_font(100))
+
+    draw.text((1800, 38), "MATCHED", fill=OLD_ACCENT, font=get_b50_ui_font(26))
+    draw.text((1800, 78), str(total_count), fill=PAPER, font=get_b50_number_font(53))
+    draw.text((2135, 38), "PAGE", fill=NEW_ACCENT, font=get_b50_ui_font(26))
+    draw.text((2135, 78), f"{page}/{page_count}", fill=PAPER, font=get_b50_number_font(53))
+
+    draw.rectangle((2510, 18, panel[2], 238), fill=PAPER)
+    summary_font = get_section_font(120)
+    label_box = draw.textbbox((0, 0), query.label, font=summary_font)
+    label_width = label_box[2] - label_box[0]
+    label_x = 2510 + (panel[2] - 2510 - label_width) // 2
+    draw.text((label_x, 46), query.label, fill=INK, font=summary_font)
+
+
 def _draw_section(
     canvas: Image.Image, y: int, height: int, title: str, count: int,
-    total: int, accent: Tuple[int, int, int],
+    total: int, accent: Tuple[int, int, int], stats_text: Optional[str] = None,
 ) -> None:
     draw = ImageDraw.Draw(canvas)
     draw.rectangle((MARGIN, y, CANVAS_W - MARGIN, y + height),
@@ -415,7 +488,7 @@ def _draw_section(
     draw.rectangle((MARGIN, y, CANVAS_W - MARGIN, y + 96), fill=INK)
     draw.rectangle((MARGIN, y, MARGIN + 400, y + 96), fill=accent)
     draw.text((MARGIN + 28, y + 20), title, fill=INK, font=get_section_font(44))
-    stats = f"TOTAL  {total}    /    {count:02d}"
+    stats = stats_text or f"TOTAL  {total}    /    {count:02d}"
     font = get_b50_ui_font(28)
     width = draw.textbbox((0, 0), stats, font=font)[2]
     draw.text((CANVAS_W - MARGIN - 28 - width, y + 33), stats, fill=PAPER, font=font)
@@ -588,3 +661,96 @@ def generate_maimai_b50_image(
     return create_maimai_b50_image(
         player, standard, current, standard_total, dx_total, save_path
     )
+
+
+def _maimai_score_matches(score: MaimaiScore, query: LevelQuery) -> bool:
+    return matches_level_query(
+        query,
+        display_level=score.display_level,
+        constant=score.level_value if score.level_value > 0 else None,
+        plus_threshold=0.7,
+    )
+
+
+def create_maimai_score_list_images(
+    player: MaimaiPlayer,
+    scores: List[MaimaiScore],
+    query: LevelQuery,
+    output_dir: Path,
+    user_id: str,
+) -> List[Path]:
+    """Render matched records as one or more 50-chart contact sheets."""
+    page_count = max(1, math.ceil(len(scores) / SCORE_LIST_PAGE_SIZE))
+    timestamp = time.time_ns()
+    paths: List[Path] = []
+    bg_path = Path("data") / "b30_assets" / "bg.png"
+
+    for page_index in range(page_count):
+        page_scores = scores[
+            page_index * SCORE_LIST_PAGE_SIZE:(page_index + 1) * SCORE_LIST_PAGE_SIZE
+        ]
+        rows = max(1, math.ceil(len(page_scores) / 5))
+        panel_y = HEADER_H + 10
+        panel_h = SECTION_HEADER_H + rows * CARD_H + max(0, rows - 1) * CARD_GAP_Y + 24
+        canvas_h = panel_y + panel_h + 24
+        if bg_path.exists():
+            try:
+                canvas = Image.open(bg_path).resize(
+                    (CANVAS_W, canvas_h), Image.Resampling.LANCZOS
+                ).convert("RGB")
+            except Exception:
+                canvas = Image.new("RGB", (CANVAS_W, canvas_h), PAPER)
+        else:
+            canvas = Image.new("RGB", (CANVAS_W, canvas_h), PAPER)
+        _draw_background(canvas)
+        _draw_score_list_header(
+            canvas, player, query, len(scores), page_index + 1, page_count,
+        )
+        average = (
+            sum(score.dx_rating for score in page_scores) / len(page_scores)
+            if page_scores else 0
+        )
+        _draw_section(
+            canvas, panel_y, panel_h,
+            f"LEVEL {query.label}  {page_index + 1}/{page_count}",
+            len(page_scores), 0, NEW_ACCENT,
+            stats_text=f"AVG. DX RT  {average:.0f}    /    {len(page_scores):02d}",
+        )
+        card_y = panel_y + SECTION_HEADER_H
+        for local_index, score in enumerate(page_scores):
+            row, column = divmod(local_index, 5)
+            x = CARD_START_X + column * (CARD_W + CARD_GAP_X)
+            y = card_y + row * (CARD_H + CARD_GAP_Y)
+            global_index = page_index * SCORE_LIST_PAGE_SIZE + local_index
+            _draw_card(canvas, score, x, y, global_index)
+
+        path = output_dir / (
+            f"mai_score_{user_id}_{query.label.replace('+', 'p')}_"
+            f"{timestamp}_{page_index + 1}.png"
+        )
+        path.parent.mkdir(parents=True, exist_ok=True)
+        canvas = append_image_credit(canvas, get_b50_ui_font(22))
+        canvas.save(path, quality=95)
+        paths.append(path)
+    return paths
+
+
+def generate_maimai_score_list_images(
+    credential: str, output_dir: Path, user_id: str, query_text: str,
+) -> Optional[Tuple[List[Path], int]]:
+    cleanup_old_images(output_dir)
+    query = parse_level_query(query_text)
+    player = get_maimai_player(credential)
+    scores = get_all_maimai_scores(credential)
+    if not player or scores is None:
+        return None
+    matched = [score for score in scores if _maimai_score_matches(score, query)]
+    matched.sort(
+        key=lambda score: (score.level_value, score.achievements, score.dx_rating),
+        reverse=True,
+    )
+    if not matched:
+        return [], 0
+    return create_maimai_score_list_images(
+        player, matched, query, output_dir, user_id,
+    ), len(matched)

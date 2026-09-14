@@ -8,9 +8,10 @@ from nonebot.adapters.onebot.v11 import MessageEvent, MessageSegment
 from nonebot.params import CommandArg
 
 from src.common import at_me_only, random_delay
+from src.score_level_query import LevelQueryError, parse_level_query
 from .b30_core import (
-    generate_b30_image, generate_b50_image, generate_fu_image,
-    generate_push_score_image, get_player_info,
+    generate_b30_image, generate_b50_image, generate_chunithm_score_list_images,
+    generate_fu_image, generate_push_score_image, get_player_info,
 )
 from .oauth import (
     create_authorization_url, exchange_authorization_code, get_access_token,
@@ -65,6 +66,7 @@ async def handle_chu(event: MessageEvent, args=CommandArg()):
             "/chu unbind - 解除绑定\n"
             "/chu b30 - 生成 B30 图片\n"
             "/chu b50 - 生成 B50 图片\n"
+            "/chu score <任意等级或定数> - 生成该档成绩列表\n"
             "/chu 推分 - 随机抽一首歌\n"
             "/chu 装福 - 随机抽一首上分曲\n"
             "——————————————\n"
@@ -128,12 +130,49 @@ async def handle_chu(event: MessageEvent, args=CommandArg()):
         await chu_cmd.finish(
             MessageSegment.at(event.get_user_id()) + "\n你还没绑定呢...真麻烦喵。")
 
+    if sub == "score":
+        if not sub_args.strip():
+            await chu_cmd.finish(
+                MessageSegment.at(user_id)
+                + "\n请发送 /chu score <任意等级或定数>；整数、+档和一位小数均支持。"
+            )
+        try:
+            parse_level_query(sub_args)
+        except LevelQueryError as exc:
+            await chu_cmd.finish(MessageSegment.at(user_id) + f"\n参数错误：{exc}。")
+
     credential, auth_error = await _resolve_credential(user_id)
     if not credential:
         await chu_cmd.finish(
             MessageSegment.at(event.get_user_id())
             + f"\n无法读取授权：{auth_error}。请先发送 /chu bind。"
         )
+
+    if sub == "score":
+        await chu_cmd.send(f"正在生成 Lv.{sub_args.strip()} 成绩列表...稍等喵。")
+        result = await asyncio.to_thread(
+            generate_chunithm_score_list_images,
+            credential, OUTPUT_DIR, user_id, sub_args,
+        )
+        if result is None:
+            await chu_cmd.finish(
+                MessageSegment.at(user_id)
+                + "\n数据获取失败，请重新同步 LXNS 成绩或使用 /chu bind 重新授权。"
+            )
+        image_paths, matched = result
+        if not image_paths:
+            await chu_cmd.finish(
+                MessageSegment.at(user_id)
+                + f"\n没有找到 Lv.{sub_args.strip()} 的已游玩成绩。"
+            )
+        for index, image_path in enumerate(image_paths, start=1):
+            await chu_cmd.send(
+                MessageSegment.at(user_id)
+                + "\n"
+                + MessageSegment.image(image_path.resolve().as_uri())
+                + f"\nLv.{sub_args.strip()} 成绩列表 {index}/{len(image_paths)}"
+            )
+        await chu_cmd.finish(f"共找到 {matched} 张谱面的成绩。")
 
     if sub == "b30":
         await chu_cmd.send("B30 图片生成中...等着喵。")
