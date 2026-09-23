@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 
 import requests
-from PIL import Image, ImageDraw, ImageEnhance, ImageFont
+from PIL import Image, ImageDraw, ImageFont
 
 from src.image_credit import append_image_credit
 from src.score_level_query import LevelQuery, matches_level_query, parse_level_query
@@ -96,6 +96,8 @@ B40_RULE = (43, 53, 64)
 B40_MARGIN = 64
 B40_GAP = 24
 B40_COLUMN_W = 555
+B40_CARD_H = 228
+B40_CARD_GAP_Y = 16
 
 
 class TakumiError(RuntimeError):
@@ -1057,8 +1059,7 @@ def _draw_card(
     draw.text((text_right - rw, y + 180), rate_text, fill=INK, font=rate_font)
 
 
-def _b40_jacket(score: BestScore, size: int, saturation: float,
-                brightness: float) -> Image.Image:
+def _b40_jacket(score: BestScore, size: int) -> Image.Image:
     jacket = load_jacket_image(score.song_id)
     if jacket is None:
         fallback = Image.new("RGB", (size, size), B40_SURFACE_RAISED)
@@ -1068,10 +1069,7 @@ def _b40_jacket(score: BestScore, size: int, saturation: float,
             font=ui_font(max(16, size // 12)), anchor="mm",
         )
         return fallback
-    jacket = jacket.resize((size, size), Image.Resampling.LANCZOS).convert("RGB")
-    jacket = ImageEnhance.Color(jacket).enhance(saturation)
-    jacket = ImageEnhance.Brightness(jacket).enhance(brightness)
-    return jacket
+    return jacket.resize((size, size), Image.Resampling.LANCZOS).convert("RGB")
 
 
 def _b40_title_lines(
@@ -1119,45 +1117,15 @@ def _draw_b40_hero(
     canvas: Image.Image, player_name: str, result: B40Result,
 ) -> None:
     draw = ImageDraw.Draw(canvas)
-    scores = result.scores
-    average = (
-        sum(item.single_rating for item in scores) / len(scores)
-        if scores else 0.0
-    )
-
-    draw.text((B40_MARGIN, 60), "TAKUMI³  /  PLAYER REPORT",
-              fill=B40_ACCENT, font=ui_font(24))
     name_font = text_font(68)
     name = _truncate(draw, player_name or "PLAYER", name_font, 960)
     draw.text((B40_MARGIN, 104), name, fill=B40_TEXT, font=name_font)
-    draw.text(
-        (B40_MARGIN, 204),
-        f"MATCHED {result.matched_chart_count:03d}   /   "
-        f"ACCOUNT {result.source_score_count:03d}",
-        fill=B40_MUTED, font=ui_font(24),
-    )
-    draw.text((B40_MARGIN, 250), "DIRECT ACCOUNT PERFORMANCE SNAPSHOT",
-              fill=(73, 86, 96), font=ui_font(20))
 
     rating_x = 1184
     draw.text((rating_x, 56), "RATING", fill=B40_MUTED, font=ui_font(25))
     rating_text = f"{result.rating:.3f}"
     draw.text((rating_x - 8, 76), rating_text, fill=B40_TEXT,
               font=number_font(180))
-    draw.text((rating_x, 264),
-              f"CALCULATED FROM {len(scores):02d} RATED CHARTS",
-              fill=B40_ACCENT, font=ui_font(21))
-
-    right_x = 2260
-    completeness = "COMPLETE" if result.is_complete else "PARTIAL"
-    draw.text((right_x, 60), "BEST 40 STATUS", fill=B40_ACCENT,
-              font=ui_font(24))
-    draw.text((right_x, 104), completeness, fill=B40_TEXT,
-              font=number_font(52))
-    draw.text((right_x, 166), f"{len(scores):02d} / 40",
-              fill=B40_TEXT_SOFT, font=number_font(68))
-    draw.text((right_x, 252), f"AVERAGE  {average:.3f}",
-              fill=B40_MUTED, font=ui_font(23))
 
     draw.line((B40_MARGIN, 328, CANVAS_W - B40_MARGIN, 328),
               fill=B40_RULE, width=2)
@@ -1166,25 +1134,12 @@ def _draw_b40_hero(
 def _draw_score_archive_hero(
     canvas: Image.Image,
     player_name: str,
-    result: B40Result,
     query: LevelQuery,
-    total: int,
-    page: int,
-    page_count: int,
 ) -> None:
     draw = ImageDraw.Draw(canvas)
-    draw.text((B40_MARGIN, 60), "TAKUMI³  /  SCORE ARCHIVE",
-              fill=B40_ACCENT, font=ui_font(24))
     name_font = text_font(62)
     name = _truncate(draw, player_name or "PLAYER", name_font, 960)
     draw.text((B40_MARGIN, 108), name, fill=B40_TEXT, font=name_font)
-    draw.text(
-        (B40_MARGIN, 204),
-        f"PLAYED {total:03d}   /   ACCOUNT {result.source_score_count:03d}",
-        fill=B40_MUTED, font=ui_font(24),
-    )
-    draw.text((B40_MARGIN, 250), "DIRECT ACCOUNT SCORE SNAPSHOT",
-              fill=(73, 86, 96), font=ui_font(20))
 
     query_x = 1184
     draw.text((query_x, 56), "LEVEL QUERY", fill=B40_MUTED,
@@ -1198,19 +1153,6 @@ def _draw_score_archive_hero(
         query_font = number_font(query_font.size - 4)
     draw.text((query_x - 8, 88), query_text, fill=B40_TEXT,
               font=query_font)
-    query_kind = "EXACT CHART CONSTANT" if query.is_constant else "DISPLAY LEVEL"
-    draw.text((query_x, 264), query_kind, fill=B40_ACCENT,
-              font=ui_font(21))
-
-    right_x = 2260
-    draw.text((right_x, 60), "ARCHIVE STATUS", fill=B40_ACCENT,
-              font=ui_font(24))
-    draw.text((right_x, 104), f"{total:02d} RESULTS", fill=B40_TEXT,
-              font=number_font(52))
-    draw.text((right_x, 174), f"PAGE {page:02d} / {page_count:02d}",
-              fill=B40_TEXT_SOFT, font=number_font(42))
-    draw.text((right_x, 252), f"B40 RATING  {result.rating:.3f}",
-              fill=B40_MUTED, font=ui_font(23))
 
     draw.line((B40_MARGIN, 328, CANVAS_W - B40_MARGIN, 328),
               fill=B40_RULE, width=2)
@@ -1237,7 +1179,7 @@ def _draw_b40_top_one(
     draw.rectangle((x, y, x + 8, y + height), fill=B40_ACCENT)
 
     jacket_size = 384
-    canvas.paste(_b40_jacket(score, jacket_size, 1.0, 0.92), (x + 32, y + 32))
+    canvas.paste(_b40_jacket(score, jacket_size), (x + 32, y + 32))
 
     text_x = x + 456
     text_right = x + width - 32
@@ -1275,7 +1217,7 @@ def _draw_b40_top_secondary(
     width, height = 892, 212
     draw.rectangle((x, y, x + width, y + height), fill=B40_SURFACE)
     jacket_size = 164
-    canvas.paste(_b40_jacket(score, jacket_size, 0.68, 0.76),
+    canvas.paste(_b40_jacket(score, jacket_size),
                  (x + 24, y + 24))
 
     text_x = x + 220
@@ -1350,7 +1292,7 @@ def _draw_b40_standard(
     width, height = B40_COLUMN_W, 184
     draw.rectangle((x, y, x + width, y + height), fill=B40_SURFACE)
     jacket_size = 136
-    canvas.paste(_b40_jacket(score, jacket_size, 0.52, 0.72),
+    canvas.paste(_b40_jacket(score, jacket_size),
                  (x + 16, y + 24))
 
     text_x = x + 176
@@ -1381,7 +1323,7 @@ def _draw_b40_compact(
     draw = ImageDraw.Draw(canvas)
     width, height = B40_COLUMN_W, 144
     jacket_size = 88
-    canvas.paste(_b40_jacket(score, jacket_size, 0.18, 0.58),
+    canvas.paste(_b40_jacket(score, jacket_size),
                  (x, y + 16))
 
     text_x = x + 112
@@ -1408,6 +1350,58 @@ def _draw_b40_compact(
               fill=B40_RULE, width=1)
 
 
+def _draw_takumi_song_card(
+    canvas: Image.Image, score: BestScore, x: int, y: int, index: int,
+) -> None:
+    """Draw the single shared song-card component used by every TAKUMI image."""
+    draw = ImageDraw.Draw(canvas)
+    right = x + B40_COLUMN_W
+    draw.rectangle(
+        (x, y, right, y + B40_CARD_H), fill=B40_SURFACE,
+    )
+
+    jacket_size = 172
+    canvas.paste(
+        _b40_jacket(score, jacket_size),
+        (x + 16, y + 28),
+    )
+
+    text_x = x + 212
+    text_right = right - 16
+    diff_label = DIFFICULTY_META.get(
+        score.difficulty, (score.difficulty[:3],)
+    )[0]
+    draw.text(
+        (text_x, y + 18), f"{index + 1:02d}  /  {diff_label}",
+        fill=B40_MUTED, font=ui_font(20),
+    )
+
+    title_font = text_font(29)
+    title = _truncate(draw, score.title, title_font, text_right - text_x)
+    draw.text((text_x, y + 52), title, fill=B40_TEXT, font=title_font)
+
+    score_text = f"{score.score:,}"
+    draw.text((text_x, y + 92), score_text, fill=B40_TEXT,
+              font=number_font(47))
+
+    draw.line((text_x, y + 158, text_right, y + 158),
+              fill=B40_RULE, width=1)
+    draw.text((text_x, y + 178), "RT", fill=B40_MUTED, font=ui_font(19))
+    draw.text((text_x + 32, y + 171), f"{score.single_rating:.3f}",
+              fill=B40_TEXT_SOFT, font=number_font(29))
+
+    rank_font = number_font(30)
+    rank_w = draw.textbbox((0, 0), score.rank, font=rank_font)[2]
+    rank_x = text_right - rank_w
+    draw.text((rank_x, y + 170), score.rank,
+              fill=_b40_rank_color(score.rank), font=rank_font)
+    const_text = f"{score.constant:.1f}"
+    const_font = ui_font(20)
+    const_w = draw.textbbox((0, 0), const_text, font=const_font)[2]
+    draw.text((rank_x - const_w - 24, y + 179), const_text,
+              fill=B40_MUTED, font=const_font)
+
+
 def render_b40_image(
     result: B40Result, player_name: str, output_dir: Path, qq_user_id: str,
 ) -> Path:
@@ -1417,50 +1411,23 @@ def render_b40_image(
     _draw_b40_hero(canvas, player_name, result)
     draw = ImageDraw.Draw(canvas)
     scores = list(result.scores[:40])
-
-    _draw_b40_section_label(
-        draw, 372, "01", "TOP PERFORMANCE",
-        "THE FIVE HIGHEST-CONTRIBUTING CHARTS",
+    draw.text((B40_MARGIN, 370), "BEST 40", fill=B40_TEXT,
+              font=text_font(32))
+    average = (
+        sum(item.single_rating for item in scores) / len(scores)
+        if scores else 0.0
     )
-    if scores:
-        _draw_b40_top_one(canvas, scores[0], B40_MARGIN, 424)
-    secondary_positions = (
-        (1128, 424), (2044, 424), (1128, 660), (2044, 660),
-    )
-    for index, score in enumerate(scores[1:5], start=1):
-        x, y = secondary_positions[index - 1]
-        _draw_b40_top_secondary(canvas, score, x, y, index)
+    average_text = f"AVERAGE  {average:.3f}"
+    average_font = ui_font(22)
+    average_w = draw.textbbox((0, 0), average_text, font=average_font)[2]
+    draw.text((CANVAS_W - B40_MARGIN - average_w, 378), average_text,
+              fill=B40_MUTED, font=average_font)
 
-    _draw_b40_overview(canvas, scores, 904)
-
-    _draw_b40_section_label(
-        draw, 1032, "02", "STRONGEST SET",
-        "RANKS 06–15  /  STANDARD DETAIL",
-    )
-    for local_index, score in enumerate(scores[5:15]):
-        row, column = divmod(local_index, 5)
+    for index, score in enumerate(scores):
+        row, column = divmod(index, 5)
         x = B40_MARGIN + column * (B40_COLUMN_W + B40_GAP)
-        y = 1080 + row * (184 + B40_GAP)
-        _draw_b40_standard(canvas, score, x, y, local_index + 5)
-
-    _draw_b40_section_label(
-        draw, 1512, "03", "PERFORMANCE DEPTH",
-        "RANKS 16–40  /  COMPACT VIEW",
-    )
-    for local_index, score in enumerate(scores[15:40]):
-        row, column = divmod(local_index, 5)
-        x = B40_MARGIN + column * (B40_COLUMN_W + B40_GAP)
-        y = 1560 + row * 156
-        _draw_b40_compact(canvas, score, x, y, local_index + 15)
-
-    footer = (
-        "TAKUMI³ BEST 40   /   DIRECT ACCOUNT DATA   /   "
-        "OFFICIAL SONG IDS + COMMUNITY CHART CONSTANTS"
-    )
-    footer_font = ui_font(18)
-    fw = draw.textbbox((0, 0), footer, font=footer_font)[2]
-    draw.text(((CANVAS_W - fw) // 2, CANVAS_H - 34), footer,
-              fill=B40_MUTED, font=footer_font)
+        y = 424 + row * (B40_CARD_H + B40_CARD_GAP_Y)
+        _draw_takumi_song_card(canvas, score, x, y, index)
 
     output_dir.mkdir(parents=True, exist_ok=True)
     safe_user = "".join(char for char in str(qq_user_id) if char.isalnum()) or "user"
@@ -1513,32 +1480,23 @@ def render_score_list_images(
             page_index * SCORE_LIST_PAGE_SIZE:
             (page_index + 1) * SCORE_LIST_PAGE_SIZE
         ]
-        featured = page_scores[:5]
-        compact = page_scores[5:]
-        compact_rows = math.ceil(len(compact) / 5) if compact else 0
-        content_bottom = 608
-        if compact_rows:
-            content_bottom = (
-                704 + compact_rows * 144 + max(0, compact_rows - 1) * 12
-            )
+        rows = max(1, math.ceil(len(page_scores) / 5))
+        content_bottom = (
+            424 + rows * B40_CARD_H
+            + max(0, rows - 1) * B40_CARD_GAP_Y
+        )
         canvas_h = max(900, content_bottom + 96)
         canvas = Image.new("RGB", (CANVAS_W, canvas_h), B40_BG)
         _draw_b40_background(canvas)
         _draw_score_archive_hero(
             canvas,
             player_name,
-            result,
             query,
-            len(scores),
-            page_index + 1,
-            page_count,
         )
 
         draw = ImageDraw.Draw(canvas)
-        _draw_b40_section_label(
-            draw, 372, "01", "LEADING RESULTS",
-            "HIGHEST CONSTANT / SCORE ORDER",
-        )
+        draw.text((B40_MARGIN, 370), "SCORE RESULTS", fill=B40_TEXT,
+                  font=text_font(32))
         average = (
             sum(item.single_rating for item in scores) / len(scores)
             if scores else 0.0
@@ -1550,36 +1508,13 @@ def render_score_list_images(
                   fill=B40_MUTED, font=stat_font)
 
         global_offset = page_index * SCORE_LIST_PAGE_SIZE
-        for local_index, score in enumerate(featured):
-            x = B40_MARGIN + local_index * (B40_COLUMN_W + B40_GAP)
-            _draw_b40_standard(
-                canvas, score, x, 424, global_offset + local_index,
+        for local_index, score in enumerate(page_scores):
+            row, column = divmod(local_index, 5)
+            x = B40_MARGIN + column * (B40_COLUMN_W + B40_GAP)
+            y = 424 + row * (B40_CARD_H + B40_CARD_GAP_Y)
+            _draw_takumi_song_card(
+                canvas, score, x, y, global_offset + local_index,
             )
-
-        if compact:
-            _draw_b40_section_label(
-                draw, 656, "02", "FULL ARCHIVE",
-                "COMPACT DETAIL",
-            )
-            for local_index, score in enumerate(compact):
-                row, column = divmod(local_index, 5)
-                x = B40_MARGIN + column * (B40_COLUMN_W + B40_GAP)
-                y = 704 + row * 156
-                _draw_b40_compact(
-                    canvas, score, x, y,
-                    global_offset + len(featured) + local_index,
-                )
-
-        footer = (
-            "TAKUMI³ SCORE ARCHIVE   /   DIRECT ACCOUNT DATA   /   "
-            "OFFICIAL SONG IDS + COMMUNITY CHART CONSTANTS"
-        )
-        footer_font = ui_font(18)
-        footer_w = draw.textbbox((0, 0), footer, font=footer_font)[2]
-        draw.text(
-            ((CANVAS_W - footer_w) // 2, canvas_h - 34), footer,
-            fill=B40_MUTED, font=footer_font,
-        )
 
         output_dir.mkdir(parents=True, exist_ok=True)
         path = output_dir / (
