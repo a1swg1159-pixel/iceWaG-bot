@@ -9,12 +9,14 @@ from nonebot.log import logger
 from nonebot.params import CommandArg
 
 from src.common import at_me_only, random_delay
+from src.score_level_query import LevelQueryError, parse_level_query
 
 from .bindings import get_binding, remove_binding, set_binding
 from .core import (
     TakumiError,
     TakumiNoScoresError,
     generate_b40_image,
+    generate_score_list_images,
     get_b40,
     link_account,
     unlink_account,
@@ -54,6 +56,7 @@ async def handle_takumi(event: MessageEvent, args=CommandArg()):
             + "\nTAKUMI³ 指令：\n"
             "/takumi bind <登录邮箱> <密码> - 仅限私聊，一次性授权\n"
             "/takumi b40 - 直接查询并生成 Best 40 图片\n"
+            "/takumi score <等级或定数> - 查询该档已游玩成绩\n"
             "/takumi unbind - 撤销授权并解除绑定\n"
             "——————————————\n"
             "🔒 密码只用于本次登录，插件不会写入绑定文件；"
@@ -137,7 +140,21 @@ async def handle_takumi(event: MessageEvent, args=CommandArg()):
         suffix = "（远端撤销暂时失败，本地凭据已删除）" if revoke_failed else ""
         await takumi_cmd.finish(f"TAKUMI³ 账号已解绑。{suffix}")
 
-    if sub != "b40":
+    if sub == "score":
+        if len(parts) != 2 or not parts[1].strip():
+            await takumi_cmd.finish(
+                MessageSegment.at(user_id)
+                + "\n请发送 /takumi score <等级或定数>；"
+                "支持整数、+档和一位小数，例如 15、15+、15.8。"
+            )
+        try:
+            parse_level_query(parts[1])
+        except LevelQueryError as exc:
+            await takumi_cmd.finish(
+                MessageSegment.at(user_id) + f"\n参数错误：{exc}。"
+            )
+
+    if sub not in {"b40", "score"}:
         await takumi_cmd.finish(
             MessageSegment.at(user_id)
             + f"\n没有 {sub} 这个指令。发送 /takumi 查看用法。"
@@ -150,6 +167,45 @@ async def handle_takumi(event: MessageEvent, args=CommandArg()):
             + "\n还没有绑定，请私聊 Bot 发送："
             "/takumi bind <登录邮箱> <密码>"
         )
+
+    if sub == "score":
+        query_text = parts[1].strip()
+        await takumi_cmd.send(
+            f"正在生成 TAKUMI³ Lv.{query_text} 成绩列表...稍等喵。"
+        )
+        try:
+            image_paths, matched = await asyncio.to_thread(
+                generate_score_list_images,
+                binding.custom_id,
+                binding.display_name or _display_name(event),
+                OUTPUT_DIR,
+                user_id,
+                query_text,
+            )
+        except TakumiError as exc:
+            await takumi_cmd.finish(
+                MessageSegment.at(user_id) + f"\n生成失败：{exc}"
+            )
+        except Exception:
+            logger.exception("TAKUMI³ score-list image generation failed")
+            await takumi_cmd.finish(
+                MessageSegment.at(user_id) + "\n生成图片时发生错误，请稍后再试。"
+            )
+
+        if not image_paths:
+            await takumi_cmd.finish(
+                MessageSegment.at(user_id)
+                + f"\n没有找到 Lv.{query_text} 的已游玩成绩。"
+            )
+        for index, image_path in enumerate(image_paths, start=1):
+            await takumi_cmd.send(
+                MessageSegment.at(user_id)
+                + "\n"
+                + MessageSegment.image(image_path.resolve().as_uri())
+                + f"\nTAKUMI³ Lv.{query_text} 成绩列表 "
+                f"{index}/{len(image_paths)}"
+            )
+        await takumi_cmd.finish(f"共找到 {matched} 张谱面的成绩。")
 
     await takumi_cmd.send("TAKUMI³ B40 生成中...稍等喵。")
     try:

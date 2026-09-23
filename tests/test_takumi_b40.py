@@ -43,6 +43,7 @@ TakumiAuthError = CORE.TakumiAuthError
 build_b40_from_user_data = CORE.build_b40_from_user_data
 parse_playfab_scores = CORE.parse_playfab_scores
 render_b40_image = CORE.render_b40_image
+render_score_list_images = CORE.render_score_list_images
 song_contribution = CORE.song_contribution
 
 
@@ -130,6 +131,8 @@ class TakumiRatingTests(unittest.TestCase):
         self.assertEqual(result.source_score_count, 2)
         self.assertEqual(result.matched_chart_count, 2)
         self.assertEqual(result.unmatched_row_count, 0)
+        self.assertEqual(len(result.all_scores), 2)
+        self.assertEqual(result.all_scores[0].display_level, "15")
 
     def test_bundled_catalog_covers_every_chart_constant(self):
         catalog = CORE._load_bundled_catalog()
@@ -234,6 +237,43 @@ class TakumiRendererTests(unittest.TestCase):
             self.assertTrue(path.exists())
             with Image.open(path) as image:
                 self.assertEqual(image.size, (3000, 2556))
+                self.assertEqual(image.mode, "RGB")
+
+    def test_score_list_supports_display_level_and_exact_constant(self):
+        scores = (
+            BestScore(
+                "chart-1", "Level Fifteen", "MASTER", 15.4, 999_000,
+                0.5, 20.0, "S+", 1, "15",
+            ),
+            BestScore(
+                "chart-2", "Level Fifteen Plus", "INSANITY", 15.8,
+                998_000, 0.5, 20.0, "S+", 2, "15+",
+            ),
+        )
+        result = B40Result(
+            scores=scores,
+            rating=1.0,
+            source_score_count=2,
+            matched_chart_count=2,
+            unmatched_row_count=0,
+            fetched_at=time.time(),
+            all_scores=scores,
+        )
+        level_query = CORE.parse_level_query("15+")
+        exact_query = CORE.parse_level_query("15.8")
+        self.assertFalse(CORE._takumi_score_matches(scores[0], level_query))
+        self.assertTrue(CORE._takumi_score_matches(scores[1], level_query))
+        self.assertFalse(CORE._takumi_score_matches(scores[0], exact_query))
+        self.assertTrue(CORE._takumi_score_matches(scores[1], exact_query))
+
+        with tempfile.TemporaryDirectory() as directory:
+            paths = render_score_list_images(
+                result, [scores[1]], exact_query, "测试玩家",
+                Path(directory), "123",
+            )
+            self.assertEqual(len(paths), 1)
+            with Image.open(paths[0]) as image:
+                self.assertEqual(image.size, (3000, 956))
                 self.assertEqual(image.mode, "RGB")
 
 
