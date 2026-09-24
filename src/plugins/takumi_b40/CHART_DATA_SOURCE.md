@@ -12,7 +12,11 @@ the current official catalog; rating constants remain unchanged.
 `song_catalog.json` maps PlayFab song IDs to titles, difficulties, and visible
 levels. It is generated from the game's public `SongsInfo` sheet with
 `tools/update_takumi_catalog.py`. At runtime the bot refreshes that sheet and
-falls back to the bundled snapshot when Google Sheets is unavailable.
+atomically saves the latest validated copy to `data/takumi_song_catalog.json`.
+That persistent runtime copy is used when Google Sheets is unavailable, with
+the bundled snapshot as the final fallback. Exact constants encoded by the
+sheet are also used as a fallback for charts missing from `charts.json`, so a
+newly released song is not hidden while the community snapshot catches up.
 
 `jacket_atlas.webp` and `jacket_atlas.json` contain a compact song-ID-indexed
 atlas generated from the official Android APK by

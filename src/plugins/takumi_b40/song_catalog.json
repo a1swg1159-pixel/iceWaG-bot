@@ -3471,6 +3471,19 @@
     "is_public": true
   },
   {
+    "song_id": 302,
+    "internal_name": "Kosoku_105Gou_XXX_Sen",
+    "title": "光速105号XXX線",
+    "levels": [
+      "60",
+      "120",
+      "139",
+      "155"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
     "song_id": 305,
     "internal_name": "Orhidea",
     "title": "Ορχιδέα",

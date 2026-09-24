@@ -81,8 +81,10 @@ def main() -> None:
         atlas.paste(artwork, (column * CELL_SIZE, row * CELL_SIZE))
         index[str(song_id)] = position
 
-    atlas.save(ATLAS_PATH, "WEBP", quality=88, method=6)
-    INDEX_PATH.write_text(
+    atlas_temporary = ATLAS_PATH.with_suffix(".webp.tmp")
+    index_temporary = INDEX_PATH.with_suffix(".json.tmp")
+    atlas.save(atlas_temporary, "WEBP", quality=88, method=6)
+    index_temporary.write_text(
         json.dumps(
             {"cell_size": CELL_SIZE, "columns": COLUMNS, "songs": index},
             ensure_ascii=False,
@@ -90,6 +92,8 @@ def main() -> None:
         ) + "\n",
         encoding="utf-8",
     )
+    atlas_temporary.replace(ATLAS_PATH)
+    index_temporary.replace(INDEX_PATH)
     print(f"extracted {len(extracted)} jackets; missing {len(missing)}")
     for item in missing:
         print("missing", *item)

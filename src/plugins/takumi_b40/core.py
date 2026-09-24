@@ -5,6 +5,7 @@ from __future__ import annotations
 import csv
 import io
 import json
+import logging
 import math
 import re
 import secrets
@@ -31,6 +32,7 @@ SONG_CATALOG_URL = (
 )
 CHARTS_PATH = Path(__file__).with_name("charts.json")
 SONG_CATALOG_PATH = Path(__file__).with_name("song_catalog.json")
+RUNTIME_CATALOG_PATH = Path("data") / "takumi_song_catalog.json"
 JACKET_ATLAS_PATH = Path(__file__).with_name("jacket_atlas.webp")
 JACKET_INDEX_PATH = Path(__file__).with_name("jacket_atlas.json")
 MAX_RESPONSE_BYTES = 2 * 1024 * 1024
@@ -140,6 +142,7 @@ class CatalogChart:
     title: str
     difficulty: str
     level: str
+    constant: float = 0.0
 
 
 @dataclass(frozen=True)
@@ -149,6 +152,7 @@ class GameScore:
     difficulty: str
     level: str
     score: int
+    constant: float = 0.0
 
 
 @dataclass(frozen=True)
@@ -183,6 +187,7 @@ class B40Result:
 _CACHE_LOCK = threading.Lock()
 _RESULT_CACHE: Dict[str, Tuple[float, B40Result]] = {}
 _CATALOG_CACHE: Optional[Tuple[float, Tuple[CatalogChart, ...]]] = None
+logger = logging.getLogger(__name__)
 
 
 def validate_email(value: str) -> str:
@@ -332,14 +337,19 @@ def load_chart_table() -> Tuple[dict, ...]:
     return tuple(item for item in payload if isinstance(item, dict))
 
 
-def _visible_level_from_sheet(value: str) -> Optional[str]:
+def _constant_from_sheet(value: str) -> Optional[float]:
     try:
         encoded = int(str(value).strip())
     except (TypeError, ValueError):
         return None
     if encoded < 10 or encoded >= 9999:
         return None
-    return _visible_level(encoded / 10)
+    return encoded / 10
+
+
+def _visible_level_from_sheet(value: str) -> Optional[str]:
+    constant = _constant_from_sheet(value)
+    return _visible_level(constant) if constant is not None else None
 
 
 def _catalog_from_rows(rows: Sequence[dict]) -> Tuple[CatalogChart, ...]:
@@ -360,15 +370,17 @@ def _catalog_from_rows(rows: Sequence[dict]) -> Tuple[CatalogChart, ...]:
             else "INSANITY"
         )
         for index, difficulty in enumerate(("NORMAL", "HARD", "MASTER", fourth)):
-            level = _visible_level_from_sheet(levels[index])
-            if level:
-                charts.append(CatalogChart(song_id, title, difficulty, level))
+            constant = _constant_from_sheet(levels[index])
+            if constant is not None:
+                charts.append(CatalogChart(
+                    song_id, title, difficulty, _visible_level(constant), constant
+                ))
     if not charts:
         raise TakumiChartDataError("TAKUMI³ 歌曲 ID 表为空。")
     return tuple(charts)
 
 
-def _catalog_from_csv(content: str) -> Tuple[CatalogChart, ...]:
+def _catalog_payload_from_csv(content: str) -> List[dict]:
     try:
         rows = list(csv.reader(io.StringIO(content.lstrip("\ufeff"))))
     except csv.Error as exc:
@@ -383,21 +395,62 @@ def _catalog_from_csv(content: str) -> Tuple[CatalogChart, ...]:
             continue
         payload.append({
             "song_id": song_id,
+            "internal_name": row[0],
             "title": row[17] or row[0],
             "levels": row[7:11],
             "special": row[11],
+            "is_public": (
+                row[18].strip().lower() == "true" if len(row) > 18 else False
+            ),
         })
-    return _catalog_from_rows(payload)
+    # Validate before replacing the last known-good local copy.
+    _catalog_from_rows(payload)
+    return payload
 
 
-def _load_bundled_catalog() -> Tuple[CatalogChart, ...]:
+def _catalog_from_csv(content: str) -> Tuple[CatalogChart, ...]:
+    return _catalog_from_rows(_catalog_payload_from_csv(content))
+
+
+def _load_catalog_file(path: Path) -> Tuple[CatalogChart, ...]:
     try:
-        payload = json.loads(SONG_CATALOG_PATH.read_text(encoding="utf-8"))
+        payload = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
         raise TakumiChartDataError("TAKUMI³ 本地歌曲 ID 表读取失败。") from exc
     if not isinstance(payload, list):
         raise TakumiChartDataError("TAKUMI³ 本地歌曲 ID 表格式异常。")
     return _catalog_from_rows(payload)
+
+
+def _save_runtime_catalog(payload: Sequence[dict]) -> None:
+    """Atomically persist the latest validated online catalog."""
+    document = json.dumps(payload, ensure_ascii=False, indent=2) + "\n"
+    try:
+        if (
+            RUNTIME_CATALOG_PATH.exists()
+            and RUNTIME_CATALOG_PATH.read_text(encoding="utf-8") == document
+        ):
+            return
+        RUNTIME_CATALOG_PATH.parent.mkdir(parents=True, exist_ok=True)
+        temporary = RUNTIME_CATALOG_PATH.with_suffix(".json.tmp")
+        temporary.write_text(document, encoding="utf-8")
+        temporary.replace(RUNTIME_CATALOG_PATH)
+    except OSError:
+        # A read-only deployment must still be able to use the online response.
+        logger.warning("Failed to persist the TAKUMI³ online song catalog", exc_info=True)
+
+
+def _load_bundled_catalog() -> Tuple[CatalogChart, ...]:
+    return _load_catalog_file(SONG_CATALOG_PATH)
+
+
+def _load_local_catalog() -> Tuple[CatalogChart, ...]:
+    if RUNTIME_CATALOG_PATH.exists():
+        try:
+            return _load_catalog_file(RUNTIME_CATALOG_PATH)
+        except TakumiChartDataError:
+            logger.warning("Ignoring an invalid TAKUMI³ runtime catalog", exc_info=True)
+    return _load_bundled_catalog()
 
 
 def load_song_catalog(force_refresh: bool = False) -> Tuple[CatalogChart, ...]:
@@ -419,13 +472,15 @@ def load_song_catalog(force_refresh: bool = False) -> Tuple[CatalogChart, ...]:
         )
         response.raise_for_status()
         if len(response.content) <= MAX_CATALOG_BYTES:
-            catalog = _catalog_from_csv(
+            payload = _catalog_payload_from_csv(
                 response.content.decode("utf-8-sig", errors="strict")
             )
+            catalog = _catalog_from_rows(payload)
+            _save_runtime_catalog(payload)
     except (requests.RequestException, UnicodeError, TakumiChartDataError):
         catalog = None
     if catalog is None:
-        catalog = _load_bundled_catalog()
+        catalog = _load_local_catalog()
     with _CACHE_LOCK:
         _CATALOG_CACHE = (time.monotonic(), catalog)
     return catalog
@@ -506,7 +561,8 @@ def resolve_game_scores(
             unknown += 1
             continue
         resolved.append(GameScore(
-            song_id, item.title, item.difficulty, item.level, score
+            song_id, item.title, item.difficulty, item.level, score,
+            item.constant,
         ))
     return resolved, unknown
 
@@ -635,6 +691,30 @@ def match_scores(
         previous = best_by_chart.get(item.chart_id)
         if previous is None or item.score > previous.score:
             best_by_chart[item.chart_id] = item
+
+    # The online SongsInfo sheet carries constants in tenths (for example 139
+    # means 13.9). Community data remains the preferred source so its aliases
+    # keep working, while this fallback makes newly released songs available
+    # immediately instead of hiding them until charts.json is refreshed.
+    for row in game_scores:
+        identity = (row.song_id, row.difficulty)
+        if identity in matched_rows or row.constant <= 0:
+            continue
+        contribution = song_contribution(row.score, row.constant)
+        item = BestScore(
+            chart_id=f"playfab:{row.song_id}:{row.difficulty}",
+            title=row.title,
+            difficulty=row.difficulty,
+            constant=row.constant,
+            score=row.score,
+            contribution=contribution,
+            single_rating=contribution * 40,
+            rank=score_rank(row.score),
+            song_id=row.song_id,
+            display_level=row.level,
+        )
+        best_by_chart[item.chart_id] = item
+        matched_rows.add(identity)
     return list(best_by_chart.values()), len(game_scores) - len(matched_rows)
 
 

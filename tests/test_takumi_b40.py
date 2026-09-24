@@ -57,6 +57,14 @@ class FakeResponse:
         return self._payload
 
 
+class FakeCatalogResponse:
+    def __init__(self, content):
+        self.content = content
+
+    def raise_for_status(self):
+        return None
+
+
 class TakumiRatingTests(unittest.TestCase):
     def test_rating_formula_boundaries(self):
         constant = 15.0
@@ -138,12 +146,51 @@ class TakumiRatingTests(unittest.TestCase):
         catalog = CORE._load_bundled_catalog()
         game_scores = [
             CORE.GameScore(
-                item.song_id, item.title, item.difficulty, item.level, 1_000_000
+                item.song_id, item.title, item.difficulty, item.level,
+                1_000_000, item.constant,
             )
             for item in catalog
         ]
         matched, _ = CORE.match_scores(game_scores)
-        self.assertEqual(len(matched), len(CORE.load_chart_table()))
+        self.assertEqual(len(matched), len(game_scores))
+
+    def test_online_constant_fills_a_missing_community_chart(self):
+        user_data = {
+            "0202_SongScore_Regular_Master": {
+                "Value": json.dumps([{"SongID": 302, "Score": 999_000}])
+            }
+        }
+        catalog = [CatalogChart(302, "New Song", "MASTER", "13+", 13.9)]
+
+        result = build_b40_from_user_data(
+            user_data, catalog=catalog, charts=[], fetched_at=1.0
+        )
+
+        self.assertEqual(result.unmatched_row_count, 0)
+        self.assertEqual(result.all_scores[0].constant, 13.9)
+        self.assertEqual(result.all_scores[0].chart_id, "playfab:302:MASTER")
+
+    def test_online_catalog_is_persisted_and_keeps_exact_constants(self):
+        header = [f"column-{index}" for index in range(19)]
+        row = [""] * 19
+        row[0] = "NewSongInternal"
+        row[7:11] = ["60", "120", "139", "155"]
+        row[11] = "Dl"
+        row[15] = "302"
+        row[17] = "New Song"
+        row[18] = "true"
+        content = (",".join(header) + "\n" + ",".join(row)).encode("utf-8")
+
+        CORE._CATALOG_CACHE = None
+        with patch.object(
+            CORE.requests, "get", return_value=FakeCatalogResponse(content)
+        ), patch.object(CORE, "_save_runtime_catalog") as save:
+            catalog = CORE.load_song_catalog(force_refresh=True)
+
+        save.assert_called_once()
+        master = next(item for item in catalog if item.difficulty == "MASTER")
+        self.assertEqual(master.constant, 13.9)
+        self.assertEqual(master.level, "13+")
 
 
 class TakumiPlayFabTests(unittest.TestCase):
@@ -207,7 +254,8 @@ class TakumiRendererTests(unittest.TestCase):
         self.assertEqual(jacket.size, (160, 160))
         _, songs, _, _ = CORE._load_jacket_atlas()
         song_catalog = json.loads(CORE.SONG_CATALOG_PATH.read_text(encoding="utf-8"))
-        self.assertEqual(len(songs), len(song_catalog))
+        catalog_ids = {int(item["song_id"]) for item in song_catalog}
+        self.assertTrue({int(song_id) for song_id in songs}.issubset(catalog_ids))
 
     def test_renderer_outputs_full_b40_canvas(self):
         scores = tuple(
