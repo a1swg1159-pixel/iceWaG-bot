@@ -257,6 +257,14 @@ class TakumiRendererTests(unittest.TestCase):
         catalog_ids = {int(item["song_id"]) for item in song_catalog}
         self.assertTrue({int(song_id) for song_id in songs}.issubset(catalog_ids))
 
+    def test_bundled_rank_atlas_contains_every_official_rank(self):
+        for rank in ("S+", "S", "AAA", "AA", "A", "BBB", "BB", "B", "C", "N"):
+            with self.subTest(rank=rank):
+                image = CORE.load_rank_image(rank)
+                self.assertIsNotNone(image)
+                self.assertEqual(image.mode, "RGBA")
+                self.assertIsNotNone(image.getchannel("A").getbbox())
+
     def test_renderer_outputs_full_b40_canvas(self):
         scores = tuple(
             BestScore(

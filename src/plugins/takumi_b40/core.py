@@ -35,6 +35,8 @@ SONG_CATALOG_PATH = Path(__file__).with_name("song_catalog.json")
 RUNTIME_CATALOG_PATH = Path("data") / "takumi_song_catalog.json"
 JACKET_ATLAS_PATH = Path(__file__).with_name("jacket_atlas.webp")
 JACKET_INDEX_PATH = Path(__file__).with_name("jacket_atlas.json")
+RANK_ATLAS_PATH = Path(__file__).with_name("rank_atlas.webp")
+RANK_INDEX_PATH = Path(__file__).with_name("rank_atlas.json")
 MAX_RESPONSE_BYTES = 2 * 1024 * 1024
 MAX_CATALOG_BYTES = 512 * 1024
 MAX_SCORE_ROWS = 5000
@@ -854,6 +856,72 @@ def load_jacket_image(song_id: int) -> Optional[Image.Image]:
     return atlas.crop((left, top, left + cell_size, top + cell_size))
 
 
+@lru_cache(maxsize=1)
+def _load_rank_atlas() -> Tuple[Image.Image, dict, int, int]:
+    try:
+        metadata = json.loads(RANK_INDEX_PATH.read_text(encoding="utf-8"))
+        cell_size = int(metadata["cell_size"])
+        columns = int(metadata["columns"])
+        ranks = metadata["ranks"]
+        if cell_size <= 0 or columns <= 0 or not isinstance(ranks, dict):
+            raise ValueError
+        with Image.open(RANK_ATLAS_PATH) as source:
+            atlas = source.convert("RGBA")
+    except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError) as exc:
+        raise TakumiChartDataError("TAKUMI³ 本地评级图集读取失败。") from exc
+    return atlas, ranks, cell_size, columns
+
+
+@lru_cache(maxsize=16)
+def load_rank_image(rank: str) -> Optional[Image.Image]:
+    """Return one tightly cropped official rank image from the local atlas."""
+    try:
+        atlas, ranks, cell_size, columns = _load_rank_atlas()
+        position = int(ranks[str(rank).upper()])
+    except (TakumiChartDataError, KeyError, TypeError, ValueError):
+        return None
+    column, row = position % columns, position // columns
+    left, top = column * cell_size, row * cell_size
+    if left + cell_size > atlas.width or top + cell_size > atlas.height:
+        return None
+    image = atlas.crop((left, top, left + cell_size, top + cell_size))
+    bounds = image.getchannel("A").getbbox()
+    return image.crop(bounds) if bounds else None
+
+
+def _paste_rank_image(
+    canvas: Image.Image,
+    rank: str,
+    right_x: int,
+    top_y: int,
+    max_width: int,
+    max_height: int,
+) -> int:
+    """Paste an official rank image right-aligned and return its left edge."""
+    image = load_rank_image(rank)
+    if image is not None:
+        image = image.copy()
+        image.thumbnail((max_width, max_height), Image.Resampling.LANCZOS)
+        left = right_x - image.width
+        top = top_y + (max_height - image.height) // 2
+        canvas.paste(image, (left, top), image)
+        return left
+
+    draw = ImageDraw.Draw(canvas)
+    font = number_font(max(14, int(max_height * 0.72)))
+    bbox = draw.textbbox((0, 0), rank, font=font)
+    width = bbox[2] - bbox[0]
+    height = bbox[3] - bbox[1]
+    left = right_x - width
+    draw.text(
+        (left - bbox[0], top_y + (max_height - height) // 2 - bbox[1]),
+        rank,
+        fill=_b40_rank_color(rank),
+        font=font,
+    )
+    return left
+
+
 def _truncate(draw: ImageDraw.ImageDraw, text: str, font, width: int) -> str:
     if draw.textbbox((0, 0), text, font=font)[2] <= width:
         return text
@@ -1029,30 +1097,9 @@ def _draw_score_list_header(
 
 
 def _draw_rank_badge(
-    draw: ImageDraw.ImageDraw, right_x: int, top_y: int, rank: str,
+    canvas: Image.Image, right_x: int, top_y: int, rank: str,
 ) -> int:
-    palette = {
-        "S+": ((239, 182, 76), INK),
-        "S": ((208, 139, 63), PAPER),
-        "AAA": ((193, 203, 211), INK),
-        "AA": ((164, 174, 184), INK),
-        "A": ((121, 137, 151), PAPER),
-    }
-    fill, text_fill = palette.get(rank, ((87, 101, 116), PAPER))
-    font = number_font(34)
-    bbox = draw.textbbox((0, 0), rank, font=font)
-    width = max(78, bbox[2] - bbox[0] + 26)
-    left = right_x - width
-    draw.rounded_rectangle(
-        (left, top_y, right_x, top_y + 44), radius=3,
-        fill=fill, outline=(47, 56, 63), width=2,
-    )
-    tw = bbox[2] - bbox[0]
-    th = bbox[3] - bbox[1]
-    draw.text((left + (width - tw) // 2 - bbox[0],
-               top_y + (44 - th) // 2 - bbox[1] - 1),
-              rank, fill=text_fill, font=font)
-    return left
+    return _paste_rank_image(canvas, rank, right_x, top_y, 100, 44)
 
 
 def _draw_card(
@@ -1121,7 +1168,7 @@ def _draw_card(
     title = _truncate(draw, score.title, title_font, text_right - text_x)
     draw.text((text_x, y + 52), title, fill=INK, font=title_font)
 
-    rank_left = _draw_rank_badge(draw, text_right, y + 112, score.rank)
+    rank_left = _draw_rank_badge(canvas, text_right, y + 112, score.rank)
     score_text = f"{score.score:,}"
     score_font = number_font(46)
     available = rank_left - text_x - 10
@@ -1284,10 +1331,7 @@ def _draw_b40_top_one(
     metadata = f"{diff_label}   /   CONST {score.constant:.1f}"
     draw.text((text_x, y + 402), metadata, fill=B40_MUTED,
               font=ui_font(21))
-    rank_font = number_font(38)
-    rank_w = draw.textbbox((0, 0), score.rank, font=rank_font)[2]
-    draw.text((text_right - rank_w, y + 394), score.rank,
-              fill=_b40_rank_color(score.rank), font=rank_font)
+    _paste_rank_image(canvas, score.rank, text_right, y + 382, 120, 58)
 
 
 def _draw_b40_top_secondary(
@@ -1316,13 +1360,12 @@ def _draw_b40_top_secondary(
               fill=B40_TEXT_SOFT, font=number_font(28))
     const_text = f"CONST {score.constant:.1f}   /"
     rank_font = ui_font(18)
-    rank_w = draw.textbbox((0, 0), score.rank, font=rank_font)[2]
     const_w = draw.textbbox((0, 0), const_text, font=rank_font)[2]
-    rank_x = text_right - rank_w
+    rank_x = _paste_rank_image(
+        canvas, score.rank, text_right, y + 146, 92, 46,
+    )
     draw.text((rank_x - const_w - 8, y + 160), const_text,
               fill=B40_MUTED, font=rank_font)
-    draw.text((rank_x, y + 160), score.rank,
-              fill=_b40_rank_color(score.rank), font=rank_font)
 
 
 def _draw_b40_overview(
@@ -1387,14 +1430,13 @@ def _draw_b40_standard(
     draw.text((text_x, y + 140), f"RT {score.single_rating:.3f}",
               fill=B40_TEXT_SOFT, font=ui_font(21))
     rank_font = ui_font(20)
-    rank_w = draw.textbbox((0, 0), score.rank, font=rank_font)[2]
     const_text = f"{score.constant:.1f}  /"
     const_w = draw.textbbox((0, 0), const_text, font=rank_font)[2]
-    rank_x = right - rank_w
+    rank_x = _paste_rank_image(
+        canvas, score.rank, right, y + 132, 82, 42,
+    )
     draw.text((rank_x - const_w - 8, y + 142), const_text,
               fill=B40_MUTED, font=rank_font)
-    draw.text((rank_x, y + 142), score.rank,
-              fill=_b40_rank_color(score.rank), font=rank_font)
 
 
 def _draw_b40_compact(
@@ -1418,14 +1460,13 @@ def _draw_b40_compact(
               f"{index + 1:02d}  /  {diff_label} {score.constant:.1f}",
               fill=B40_MUTED, font=ui_font(17))
     rating_font = ui_font(18)
-    rank_w = draw.textbbox((0, 0), score.rank, font=rating_font)[2]
     rating_text = f"RT {score.single_rating:.3f}  /"
     rating_w = draw.textbbox((0, 0), rating_text, font=rating_font)[2]
-    rank_x = right - rank_w
+    rank_x = _paste_rank_image(
+        canvas, score.rank, right, y + 87, 72, 36,
+    )
     draw.text((rank_x - rating_w - 8, y + 94), rating_text,
               fill=B40_MUTED, font=rating_font)
-    draw.text((rank_x, y + 94), score.rank,
-              fill=_b40_rank_color(score.rank), font=rating_font)
     draw.line((text_x, y + height - 8, right, y + height - 8),
               fill=B40_RULE, width=1)
 
@@ -1470,11 +1511,9 @@ def _draw_takumi_song_card(
     draw.text((text_x + 32, y + 171), f"{score.single_rating:.3f}",
               fill=B40_TEXT_SOFT, font=number_font(29))
 
-    rank_font = number_font(30)
-    rank_w = draw.textbbox((0, 0), score.rank, font=rank_font)[2]
-    rank_x = text_right - rank_w
-    draw.text((rank_x, y + 170), score.rank,
-              fill=_b40_rank_color(score.rank), font=rank_font)
+    rank_x = _paste_rank_image(
+        canvas, score.rank, text_right, y + 164, 104, 50,
+    )
     const_text = f"{score.constant:.1f}"
     const_font = ui_font(20)
     const_w = draw.textbbox((0, 0), const_text, font=const_font)[2]

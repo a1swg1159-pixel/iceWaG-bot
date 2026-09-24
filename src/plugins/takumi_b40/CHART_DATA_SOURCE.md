@@ -21,3 +21,8 @@ newly released song is not hidden while the community snapshot catches up.
 `jacket_atlas.webp` and `jacket_atlas.json` contain a compact song-ID-indexed
 atlas generated from the official Android APK by
 `tools/extract_takumi_jackets.py`. The original APK is not kept in the project.
+
+`rank_atlas.webp` and `rank_atlas.json` contain the ten official in-game rank
+textures (`S+` through `C`, plus `N`) extracted by the same maintenance tool.
+Both B40 and score-list cards use these local textures and fall back to text if
+the atlas is unavailable.
