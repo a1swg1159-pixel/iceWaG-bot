@@ -16,9 +16,11 @@ from .core import (
     TakumiError,
     TakumiNoScoresError,
     generate_b40_image,
+    generate_const_list_images,
     generate_score_list_images,
     get_b40,
     link_account,
+    parse_const_query,
     unlink_account,
 )
 
@@ -57,6 +59,7 @@ async def handle_takumi(event: MessageEvent, args=CommandArg()):
             "/takumi bind <登录邮箱> <密码> - 仅限私聊，一次性授权\n"
             "/takumi b40 - 直接查询并生成 Best 40 图片\n"
             "/takumi score <等级或定数> - 查询该档已游玩成绩\n"
+            "/takumi const <定数范围> - 全曲库定数表，含未游玩谱面；如 14、14.2、14.2-14.8\n"
             "/takumi unbind - 撤销授权并解除绑定\n"
             "——————————————\n"
             "🔒 密码只用于本次登录，插件不会写入绑定文件；"
@@ -153,6 +156,59 @@ async def handle_takumi(event: MessageEvent, args=CommandArg()):
             await takumi_cmd.finish(
                 MessageSegment.at(user_id) + f"\n参数错误：{exc}。"
             )
+
+    if sub == "const":
+        query_text = raw[len(parts[0]):].strip()
+        if not query_text:
+            await takumi_cmd.finish(
+                MessageSegment.at(user_id)
+                + "\n请发送 /takumi const <定数范围>；"
+                "支持 14、14.2、14+、14.2-14.8。"
+            )
+        try:
+            parse_const_query(query_text)
+        except TakumiError as exc:
+            await takumi_cmd.finish(
+                MessageSegment.at(user_id) + f"\n参数错误：{exc}"
+            )
+        binding = await asyncio.to_thread(get_binding, user_id)
+        await takumi_cmd.send(
+            f"正在生成 TAKUMI³ {query_text} 定数表...稍等喵。"
+        )
+        try:
+            image_paths, total, played = await asyncio.to_thread(
+                generate_const_list_images,
+                binding.custom_id if binding else None,
+                (binding.display_name if binding else "") or _display_name(event),
+                OUTPUT_DIR,
+                user_id,
+                query_text,
+            )
+        except TakumiError as exc:
+            await takumi_cmd.finish(
+                MessageSegment.at(user_id) + f"\n生成失败：{exc}"
+            )
+        except Exception:
+            logger.exception("TAKUMI³ const-list image generation failed")
+            await takumi_cmd.finish(
+                MessageSegment.at(user_id) + "\n生成图片时发生错误，请稍后再试。"
+            )
+        if not image_paths:
+            await takumi_cmd.finish(
+                MessageSegment.at(user_id)
+                + f"\n曲库中没有 {query_text} 范围内的谱面。"
+            )
+        for index, image_path in enumerate(image_paths, start=1):
+            await takumi_cmd.send(
+                MessageSegment.at(user_id)
+                + "\n"
+                + MessageSegment.image(image_path.resolve().as_uri())
+                + f"\nTAKUMI³ {query_text} 定数表 "
+                f"{index}/{len(image_paths)}"
+            )
+        await takumi_cmd.finish(
+            f"共 {total} 张谱面，已游玩 {played} 张。"
+        )
 
     if sub not in {"b40", "score"}:
         await takumi_cmd.finish(

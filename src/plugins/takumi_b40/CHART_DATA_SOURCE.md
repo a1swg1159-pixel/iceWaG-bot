@@ -26,3 +26,11 @@ atlas generated from the official Android APK by
 textures (`S+` through `C`, plus `N`) extracted by the same maintenance tool.
 Both B40 and score-list cards use these local textures and fall back to text if
 the atlas is unavailable.
+
+`/takumi const` starts from every playable chart in the official song catalog,
+then applies the same community constants and matching aliases as B40. This
+keeps unplayed charts visible and preserves the B40 constant when the sources
+differ. Integer queries include all ten tenths; ranges include both endpoints.
+The per-constant rank counts use the stored best score. FC and AJ counts use
+the separate regular-play `Medal` value (4 and 5 respectively), so an AJ does
+not depend on reaching the theoretical 1,000,000 score.

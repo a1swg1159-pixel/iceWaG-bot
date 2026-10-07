@@ -53,6 +53,9 @@ REGULAR_SCORE_KEYS = {
     2: "0202_SongScore_Regular_Master",
     3: "0203_SongScore_Regular_Insanity",
 }
+DIFFICULTY_INDEXES = {
+    "NORMAL": 0, "HARD": 1, "MASTER": 2, "INSANITY": 3, "RAVAGE": 3,
+}
 
 CANVAS_W = 3000
 CANVAS_H = 2500
@@ -67,6 +70,10 @@ CARD_GAP_X = 22
 CARD_GAP_Y = 22
 CARD_COLUMNS = 5
 SCORE_LIST_PAGE_SIZE = 40
+CONST_CARD_H = 136
+CONST_CARD_GAP_Y = 12
+CONST_SECTION_H = 94
+CONST_PAGE_CONTENT_BOTTOM = 2760
 
 INK = (11, 20, 30)
 INK_2 = (22, 33, 44)
@@ -180,10 +187,44 @@ class B40Result:
     unmatched_row_count: int
     fetched_at: float
     all_scores: Tuple[BestScore, ...] = ()
+    medals: Tuple[Tuple[int, int, int], ...] = ()
 
     @property
     def is_complete(self) -> bool:
         return len(self.scores) >= 40
+
+
+@dataclass(frozen=True)
+class ConstQuery:
+    lower: int
+    upper: int
+
+    @property
+    def label(self) -> str:
+        if self.lower == self.upper:
+            return f"{self.lower / 10:.1f}"
+        return f"{self.lower / 10:.1f}–{self.upper / 10:.1f}"
+
+
+@dataclass(frozen=True)
+class ConstEntry:
+    song_id: int
+    title: str
+    difficulty: str
+    constant: float
+    score: Optional[int] = None
+    medal: Optional[int] = None
+
+
+@dataclass(frozen=True)
+class ConstStats:
+    total: int
+    played: int
+    s_plus: int
+    s: int
+    aaa: int
+    fc: int
+    aj: int
 
 
 _CACHE_LOCK = threading.Lock()
@@ -544,16 +585,33 @@ def parse_playfab_scores(user_data: dict) -> Dict[Tuple[int, int], int]:
     return best
 
 
+def parse_playfab_medals(user_data: dict) -> Dict[Tuple[int, int], int]:
+    """Keep each chart's best regular-play clear medal independently of score."""
+    if not isinstance(user_data, dict):
+        raise TakumiFetchError("账号成绩数据格式异常。")
+    best: Dict[Tuple[int, int], int] = {}
+    for difficulty_index, key in REGULAR_SCORE_KEYS.items():
+        for item in _unwrap_score_payload(user_data.get(key)):
+            lowered = {str(name).lower(): value for name, value in item.items()}
+            try:
+                song_id = int(lowered["songid"])
+                medal = int(lowered["medal"])
+            except (KeyError, TypeError, ValueError):
+                continue
+            if song_id < 0 or not 0 <= medal <= 10:
+                continue
+            identity = (song_id, difficulty_index)
+            best[identity] = max(medal, best.get(identity, -1))
+    return best
+
+
 def resolve_game_scores(
     raw_scores: Dict[Tuple[int, int], int],
     catalog: Sequence[CatalogChart],
 ) -> Tuple[List[GameScore], int]:
-    difficulty_indexes = {
-        "NORMAL": 0, "HARD": 1, "MASTER": 2, "INSANITY": 3, "RAVAGE": 3,
-    }
     by_identity = {
-        (item.song_id, difficulty_indexes[item.difficulty]): item
-        for item in catalog if item.difficulty in difficulty_indexes
+        (item.song_id, DIFFICULTY_INDEXES[item.difficulty]): item
+        for item in catalog if item.difficulty in DIFFICULTY_INDEXES
     }
     resolved: List[GameScore] = []
     unknown = 0
@@ -727,6 +785,7 @@ def build_b40_from_user_data(
     fetched_at: Optional[float] = None,
 ) -> B40Result:
     raw_scores = parse_playfab_scores(user_data)
+    raw_medals = parse_playfab_medals(user_data)
     game_scores, unknown = resolve_game_scores(
         raw_scores, catalog if catalog is not None else load_song_catalog()
     )
@@ -746,6 +805,10 @@ def build_b40_from_user_data(
         unmatched_row_count=max(0, unmatched + unknown),
         fetched_at=fetched_at if fetched_at is not None else time.time(),
         all_scores=tuple(matched),
+        medals=tuple(
+            (song_id, difficulty_index, medal)
+            for (song_id, difficulty_index), medal in raw_medals.items()
+        ),
     )
 
 
@@ -764,6 +827,95 @@ def get_b40(custom_id: str, force_refresh: bool = False) -> B40Result:
     with _CACHE_LOCK:
         _RESULT_CACHE[binding_secret] = (time.monotonic(), result)
     return result
+
+
+def parse_const_query(value: str) -> ConstQuery:
+    """Parse a tenth, an integer bucket, or an inclusive constant range."""
+    raw = str(value or "").strip().replace("．", ".").replace("＋", "+")
+    raw = re.sub(r"^lv\.?\s*", "", raw, flags=re.IGNORECASE)
+    pattern = r"(\d{1,2}\.\d|\d{1,2}\+?)"
+    match = re.fullmatch(
+        rf"\s*{pattern}(?:\s*(?:-|－|~|～|至|到)\s*{pattern})?\s*",
+        raw,
+    )
+    if not match:
+        raise TakumiChartDataError(
+            "定数格式应为 14、14.2、14+ 或 14.2-14.8。"
+        )
+
+    def endpoint(text: str) -> Tuple[int, int]:
+        if text.endswith("+"):
+            number = int(text[:-1])
+            return number * 10 + 5, number * 10 + 9
+        if "." in text:
+            whole, tenth = text.split(".")
+            number = int(whole) * 10 + int(tenth)
+            return number, number
+        number = int(text)
+        if number == 20:
+            return 200, 200
+        return number * 10, number * 10 + 9
+
+    left = endpoint(match.group(1))
+    right = endpoint(match.group(2)) if match.group(2) else left
+    lower, upper = left[0], right[1]
+    if lower < 10 or upper > 200 or lower > upper:
+        raise TakumiChartDataError("定数范围需按从小到大填写，且在 1.0～20.0 之间。")
+    return ConstQuery(lower, upper)
+
+
+def build_const_entries(
+    catalog: Sequence[CatalogChart],
+    played_scores: Sequence[BestScore] = (),
+    charts: Optional[Sequence[dict]] = None,
+    medals: Optional[Dict[Tuple[int, int], int]] = None,
+) -> Tuple[ConstEntry, ...]:
+    """Match the full official catalog with the same constants used by B40."""
+    synthetic = [
+        GameScore(item.song_id, item.title, item.difficulty, item.level,
+                  0, item.constant)
+        for item in catalog
+    ]
+    matched, _ = match_scores(synthetic, charts)
+    constants = {
+        (item.song_id, item.difficulty): item.constant for item in matched
+    }
+    scores = {
+        (item.song_id, item.difficulty): item.score for item in played_scores
+    }
+    medal_lookup = medals or {}
+    entries = []
+    seen = set()
+    for item in catalog:
+        identity = (item.song_id, item.difficulty)
+        if identity in seen:
+            continue
+        seen.add(identity)
+        constant = constants.get(identity, item.constant)
+        if constant <= 0:
+            continue
+        entries.append(ConstEntry(
+            item.song_id, item.title, item.difficulty, constant,
+            scores.get(identity),
+            medal_lookup.get(
+                (item.song_id, DIFFICULTY_INDEXES[item.difficulty])
+            ),
+        ))
+    return tuple(entries)
+
+
+def const_stats(entries: Sequence[ConstEntry]) -> ConstStats:
+    played = [entry for entry in entries if entry.score is not None]
+    ranks = [score_rank(entry.score) for entry in played]
+    return ConstStats(
+        total=len(entries),
+        played=len(played),
+        s_plus=ranks.count("S+"),
+        s=ranks.count("S"),
+        aaa=ranks.count("AAA"),
+        fc=sum(entry.medal == 4 for entry in played),
+        aj=sum(entry.medal == 5 for entry in played),
+    )
 
 
 def cleanup_old_images(output_dir: Path) -> None:
@@ -1679,3 +1831,227 @@ def generate_score_list_images(
         ),
         len(matched),
     )
+
+
+def _const_groups(
+    entries: Sequence[ConstEntry], query: ConstQuery,
+) -> List[Tuple[int, List[ConstEntry]]]:
+    groups: Dict[int, List[ConstEntry]] = {
+        tenth: [] for tenth in range(query.upper, query.lower - 1, -1)
+    }
+    for entry in entries:
+        tenth = round(entry.constant * 10)
+        if tenth in groups:
+            groups[tenth].append(entry)
+    difficulty_order = {name: index for index, name in enumerate(
+        ("NORMAL", "HARD", "MASTER", "INSANITY", "RAVAGE")
+    )}
+    for group in groups.values():
+        group.sort(key=lambda item: (
+            item.score is None,
+            -(item.score or 0),
+            item.title.casefold(),
+            item.song_id,
+            difficulty_order.get(item.difficulty, 9),
+        ))
+    return list(groups.items())
+
+
+def _const_pages(
+    groups: Sequence[Tuple[int, Sequence[ConstEntry]]],
+) -> List[List[Tuple[int, Sequence[ConstEntry], int]]]:
+    pages: List[List[Tuple[int, Sequence[ConstEntry], int]]] = []
+    page: List[Tuple[int, Sequence[ConstEntry], int]] = []
+    y = 430
+    for tenth, entries in groups:
+        offset = 0
+        while True:
+            rows_available = (
+                CONST_PAGE_CONTENT_BOTTOM - y - CONST_SECTION_H - 18
+            ) // (CONST_CARD_H + CONST_CARD_GAP_Y)
+            if (entries and rows_available < 1) or (
+                not entries and y + CONST_SECTION_H > CONST_PAGE_CONTENT_BOTTOM
+            ):
+                pages.append(page)
+                page = []
+                y = 430
+                continue
+            chunk = entries[offset:offset + rows_available * 5]
+            page.append((tenth, chunk, offset))
+            y += CONST_SECTION_H + math.ceil(len(chunk) / 5) * (
+                CONST_CARD_H + CONST_CARD_GAP_Y
+            ) + 18
+            offset += len(chunk)
+            if offset >= len(entries):
+                break
+            pages.append(page)
+            page = []
+            y = 430
+    if page:
+        pages.append(page)
+    return pages
+
+
+def _draw_const_card(
+    canvas: Image.Image, entry: ConstEntry, x: int, y: int, index: int,
+) -> None:
+    draw = ImageDraw.Draw(canvas)
+    right = x + B40_COLUMN_W
+    draw.rectangle((x, y, right, y + CONST_CARD_H), fill=B40_SURFACE)
+    draw.rectangle((x, y, x + 4, y + CONST_CARD_H),
+                   fill=DIFFICULTY_META.get(entry.difficulty, ("", B40_ACCENT))[1])
+    jacket = load_jacket_image(entry.song_id)
+    if jacket is not None:
+        canvas.paste(jacket.resize((108, 108), Image.Resampling.LANCZOS),
+                     (x + 14, y + 14))
+    else:
+        draw.rectangle((x + 14, y + 14, x + 122, y + 122), fill=B40_SURFACE_RAISED)
+        draw.text((x + 36, y + 51), "T3", fill=B40_ACCENT, font=number_font(31))
+
+    text_x = x + 138
+    diff = DIFFICULTY_META.get(entry.difficulty, (entry.difficulty[:3],))[0]
+    draw.text((text_x, y + 9), f"{index:03d}  /  {diff}",
+              fill=B40_MUTED, font=ui_font(19))
+    if entry.score is not None and entry.medal in (4, 5):
+        medal_text = "AJ" if entry.medal == 5 else "FC"
+        medal_font = ui_font(20)
+        medal_width = draw.textbbox((0, 0), medal_text, font=medal_font)[2]
+        draw.text((right - medal_width - 15, y + 8), medal_text,
+                  fill=B40_AMBER if entry.medal == 5 else B40_ACCENT,
+                  font=medal_font)
+    draw.text((text_x, y + 35),
+              _truncate(draw, entry.title, text_font(25), right - text_x - 14),
+              fill=B40_TEXT, font=text_font(25))
+    if entry.score is None:
+        draw.text((text_x, y + 78), "UNPLAYED", fill=B40_MUTED,
+                  font=ui_font(27))
+    else:
+        draw.text((text_x, y + 76), f"{entry.score:,}",
+                  fill=B40_TEXT, font=number_font(34))
+        _paste_rank_image(canvas, score_rank(entry.score),
+                          right - 14, y + 75, 94, 45)
+
+
+def render_const_list_images(
+    entries: Sequence[ConstEntry], query: ConstQuery, player_name: str,
+    output_dir: Path, qq_user_id: str,
+) -> List[Path]:
+    """Render every chart in range, grouped by descending exact constant."""
+    cleanup_old_images(output_dir)
+    groups = _const_groups(entries, query)
+    pages = _const_pages(groups)
+    totals = {tenth: group for tenth, group in groups}
+    matched = [entry for _, group in groups for entry in group]
+    overview = const_stats(matched)
+    safe_user = "".join(char for char in str(qq_user_id) if char.isalnum()) or "user"
+    timestamp = time.time_ns()
+    paths: List[Path] = []
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    for page_index, sections in enumerate(pages):
+        content_y = 430
+        for _, chunk, _ in sections:
+            content_y += CONST_SECTION_H + math.ceil(len(chunk) / 5) * (
+                CONST_CARD_H + CONST_CARD_GAP_Y
+            ) + 18
+        canvas = Image.new("RGB", (CANVAS_W, max(670, content_y + 38)), B40_BG)
+        _draw_b40_background(canvas)
+        draw = ImageDraw.Draw(canvas)
+        draw.text((B40_MARGIN, 66), "TAKUMI³  /  CONST ARCHIVE",
+                  fill=B40_ACCENT, font=ui_font(28))
+        draw.text((B40_MARGIN, 112),
+                  _truncate(draw, player_name or "PLAYER", text_font(62), 1050),
+                  fill=B40_TEXT, font=text_font(62))
+        draw.text((1184, 66), "CONSTANT RANGE", fill=B40_MUTED,
+                  font=ui_font(25))
+        draw.text((1174, 99), query.label, fill=B40_TEXT,
+                  font=number_font(110))
+        draw.line((B40_MARGIN, 260, CANVAS_W - B40_MARGIN, 260),
+                  fill=B40_RULE, width=2)
+        metrics = (
+            ("CHARTS", str(overview.total)),
+            ("PLAYED", f"{overview.played} / {overview.total}"),
+            ("S+", str(overview.s_plus)),
+            ("FC", str(overview.fc)),
+            ("AJ", str(overview.aj)),
+        )
+        for index, (label, value) in enumerate(metrics):
+            x = B40_MARGIN + index * 580
+            draw.text((x, 292), label, fill=B40_MUTED, font=ui_font(21))
+            draw.text((x, 321), value, fill=B40_TEXT_SOFT,
+                      font=number_font(39))
+        draw.line((B40_MARGIN, 395, CANVAS_W - B40_MARGIN, 395),
+                  fill=B40_RULE, width=2)
+
+        y = 430
+        for tenth, chunk, offset in sections:
+            stats = const_stats(totals[tenth])
+            heading = f"CONST {tenth / 10:.1f}"
+            if offset:
+                heading += "  /  CONTINUED"
+            draw.text((B40_MARGIN, y), heading, fill=B40_TEXT,
+                      font=number_font(39))
+            summary = (
+                f"{stats.total} CHARTS  /  {stats.played} PLAYED  /  "
+                f"S+ {stats.s_plus}  /  S {stats.s}  /  AAA {stats.aaa}"
+                f"  /  FC {stats.fc}  /  AJ {stats.aj}"
+            )
+            stat_font = ui_font(24)
+            stat_width = draw.textbbox((0, 0), summary, font=stat_font)[2]
+            draw.text((CANVAS_W - B40_MARGIN - stat_width, y + 14), summary,
+                      fill=B40_TEXT_SOFT, font=stat_font)
+            draw.line((B40_MARGIN, y + 64, CANVAS_W - B40_MARGIN, y + 64),
+                      fill=B40_RULE, width=1)
+            for local_index, entry in enumerate(chunk):
+                row, column = divmod(local_index, 5)
+                x = B40_MARGIN + column * (B40_COLUMN_W + B40_GAP)
+                card_y = y + CONST_SECTION_H + row * (
+                    CONST_CARD_H + CONST_CARD_GAP_Y
+                )
+                _draw_const_card(canvas, entry, x, card_y,
+                                 offset + local_index + 1)
+            y += CONST_SECTION_H + math.ceil(len(chunk) / 5) * (
+                CONST_CARD_H + CONST_CARD_GAP_Y
+            ) + 18
+
+        path = output_dir / (
+            f"takumi_const_{safe_user}_{timestamp}_{page_index + 1}.png"
+        )
+        credited = append_image_credit(
+            canvas, ui_font(22), footer_fill=B40_BG,
+            text_fill=B40_TEXT_SOFT, rule_fill=B40_ACCENT,
+        )
+        credited.save(path, format="PNG", optimize=True)
+        paths.append(path)
+    return paths
+
+
+def generate_const_list_images(
+    custom_id: Optional[str], player_name: str, output_dir: Path,
+    qq_user_id: str, query_text: str,
+) -> Tuple[List[Path], int, int]:
+    query = parse_const_query(query_text)
+    catalog = load_song_catalog()
+    played_scores: Sequence[BestScore] = ()
+    medals: Dict[Tuple[int, int], int] = {}
+    if custom_id:
+        try:
+            result = get_b40(custom_id)
+            played_scores = result.all_scores or result.scores
+            medals = {
+                (song_id, difficulty_index): medal
+                for song_id, difficulty_index, medal in result.medals
+            }
+        except TakumiNoScoresError:
+            pass
+    entries = build_const_entries(catalog, played_scores, medals=medals)
+    selected = [
+        entry for entry in entries
+        if query.lower <= round(entry.constant * 10) <= query.upper
+    ]
+    if not selected:
+        return [], 0, 0
+    paths = render_const_list_images(
+        selected, query, player_name, output_dir, qq_user_id,
+    )
+    return paths, len(selected), sum(entry.score is not None for entry in selected)

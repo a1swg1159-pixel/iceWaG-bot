@@ -101,6 +101,37 @@ class TakumiRatingTests(unittest.TestCase):
             parse_playfab_scores(user_data),
             {(153, 2): 999_000, (177, 3): 1_000_000},
         )
+        self.assertEqual(CORE.parse_playfab_medals(user_data), {(153, 2): 3})
+
+    def test_medals_are_kept_independently_from_best_score(self):
+        user_data = {
+            "0202_SongScore_Regular_Master": {"Value": json.dumps([
+                {"SongID": 153, "Score": 999_800, "Medal": 4},
+                {"SongID": 153, "Score": 999_500, "Medal": 5},
+            ])},
+        }
+        catalog = [CatalogChart(153, "Song", "MASTER", "14", 14.2)]
+        result = build_b40_from_user_data(
+            user_data, catalog=catalog, charts=[], fetched_at=1.0,
+        )
+        entries = CORE.build_const_entries(
+            catalog, result.all_scores, charts=[],
+            medals={(song_id, diff): medal for song_id, diff, medal in result.medals},
+        )
+        self.assertEqual(entries[0].score, 999_800)
+        self.assertEqual(entries[0].medal, 5)
+        self.assertEqual(CORE.const_stats(entries).aj, 1)
+
+    def test_const_stats_count_ranks_and_clear_medals_per_chart(self):
+        entries = (
+            CORE.ConstEntry(1, "S+ AJ", "MASTER", 14.2, 999_000, 5),
+            CORE.ConstEntry(2, "S FC", "MASTER", 14.2, 992_000, 4),
+            CORE.ConstEntry(3, "AAA", "MASTER", 14.2, 975_000, 1),
+            CORE.ConstEntry(4, "No score", "MASTER", 14.2),
+        )
+        self.assertEqual(
+            CORE.const_stats(entries), CORE.ConstStats(4, 3, 1, 1, 1, 1, 1)
+        )
 
     def test_build_b40_maps_duplicate_titles_by_official_song_id_order(self):
         user_data = {
@@ -248,6 +279,51 @@ class TakumiBindingTests(unittest.TestCase):
 
 
 class TakumiRendererTests(unittest.TestCase):
+    def test_const_query_expands_integer_and_inclusive_ranges(self):
+        self.assertEqual(CORE.parse_const_query("14"), CORE.ConstQuery(140, 149))
+        self.assertEqual(CORE.parse_const_query("14.2"), CORE.ConstQuery(142, 142))
+        self.assertEqual(CORE.parse_const_query("14+"), CORE.ConstQuery(145, 149))
+        self.assertEqual(CORE.parse_const_query("14.2 - 15"),
+                         CORE.ConstQuery(142, 159))
+        self.assertEqual(CORE.parse_const_query("20"), CORE.ConstQuery(200, 200))
+        with self.assertRaises(CORE.TakumiChartDataError):
+            CORE.parse_const_query("15.2-14.8")
+        with self.assertRaises(CORE.TakumiChartDataError):
+            CORE.parse_const_query("14.2+")
+
+    def test_const_entries_include_unplayed_charts_and_use_b40_constants(self):
+        catalog = (
+            CatalogChart(1, "Played", "MASTER", "14", 14.1),
+            CatalogChart(2, "Unplayed", "MASTER", "14", 14.2),
+        )
+        played = (BestScore("played", "Played", "MASTER", 14.3,
+                            999_000, 0.5, 20.0, "S+", 1, "14"),)
+        charts = ({"chart_id": "played", "title": "Played",
+                   "difficulty": "MASTER", "const_value": 14.3},)
+        entries = CORE.build_const_entries(catalog, played, charts)
+        self.assertEqual(len(entries), 2)
+        self.assertEqual((entries[0].constant, entries[0].score),
+                         (14.3, 999_000))
+        self.assertEqual((entries[1].constant, entries[1].score), (14.2, None))
+
+    def test_const_pages_preserve_group_and_unplayed_order(self):
+        entries = [
+            CORE.ConstEntry(index, f"Song {index}", "MASTER", 14.2,
+                            None if index % 2 else 995_000 + index)
+            for index in range(1, 86)
+        ]
+        groups = CORE._const_groups(entries, CORE.ConstQuery(140, 149))
+        self.assertEqual([key for key, _ in groups], list(range(149, 139, -1)))
+        page_sections = CORE._const_pages(groups)
+        flattened = [entry for page in page_sections for _, chunk, _ in page
+                     for entry in chunk]
+        self.assertEqual(len(page_sections), 2)
+        self.assertEqual(len(flattened), len(entries))
+        self.assertEqual({item.song_id for item in flattened},
+                         {item.song_id for item in entries})
+        played = [item for item in flattened if item.score is not None]
+        self.assertEqual(played, sorted(played, key=lambda item: -item.score))
+
     def test_bundled_jacket_atlas_contains_official_artwork(self):
         jacket = CORE.load_jacket_image(1)
         self.assertIsNotNone(jacket)
