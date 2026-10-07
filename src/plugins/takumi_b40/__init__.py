@@ -198,14 +198,12 @@ async def handle_takumi(event: MessageEvent, args=CommandArg()):
                 MessageSegment.at(user_id)
                 + f"\n曲库中没有 {query_text} 范围内的谱面。"
             )
-        for index, image_path in enumerate(image_paths, start=1):
-            await takumi_cmd.send(
-                MessageSegment.at(user_id)
-                + "\n"
-                + MessageSegment.image(image_path.resolve().as_uri())
-                + f"\nTAKUMI³ {query_text} 定数表 "
-                f"{index}/{len(image_paths)}"
-            )
+        await takumi_cmd.send(
+            MessageSegment.at(user_id)
+            + "\n"
+            + MessageSegment.image(image_paths[0].resolve().as_uri())
+            + f"\nTAKUMI³ {query_text} 定数表"
+        )
         await takumi_cmd.finish(
             f"共 {total} 张谱面，已游玩 {played} 张。"
         )

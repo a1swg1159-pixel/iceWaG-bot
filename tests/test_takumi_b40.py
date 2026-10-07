@@ -306,23 +306,41 @@ class TakumiRendererTests(unittest.TestCase):
                          (14.3, 999_000))
         self.assertEqual((entries[1].constant, entries[1].score), (14.2, None))
 
-    def test_const_pages_preserve_group_and_unplayed_order(self):
+    def test_const_long_image_keeps_all_charts_in_one_file(self):
         entries = [
             CORE.ConstEntry(index, f"Song {index}", "MASTER", 14.2,
                             None if index % 2 else 995_000 + index)
             for index in range(1, 86)
         ]
         groups = CORE._const_groups(entries, CORE.ConstQuery(140, 149))
-        self.assertEqual([key for key, _ in groups], list(range(149, 139, -1)))
-        page_sections = CORE._const_pages(groups)
-        flattened = [entry for page in page_sections for _, chunk, _ in page
-                     for entry in chunk]
-        self.assertEqual(len(page_sections), 2)
-        self.assertEqual(len(flattened), len(entries))
-        self.assertEqual({item.song_id for item in flattened},
+        self.assertEqual([key for key, _ in groups], [142])
+        ordered = groups[0][1]
+        self.assertEqual(len(ordered), len(entries))
+        self.assertEqual({item.song_id for item in ordered},
                          {item.song_id for item in entries})
-        played = [item for item in flattened if item.score is not None]
+        played = [item for item in ordered if item.score is not None]
         self.assertEqual(played, sorted(played, key=lambda item: -item.score))
+        with tempfile.TemporaryDirectory() as directory:
+            paths = CORE.render_const_list_images(
+                entries, CORE.ConstQuery(140, 149), "测试玩家",
+                Path(directory), "123",
+            )
+            self.assertEqual(len(paths), 1)
+            with Image.open(paths[0]) as image:
+                self.assertEqual(image.width, 3000)
+                self.assertGreater(image.height, 3000)
+
+    def test_const_oversized_range_asks_for_narrower_query(self):
+        entries = [
+            CORE.ConstEntry(index, f"Song {index}", "MASTER", 14.2)
+            for index in range(650)
+        ]
+        with tempfile.TemporaryDirectory() as directory:
+            with self.assertRaises(CORE.TakumiChartDataError):
+                CORE.render_const_list_images(
+                    entries, CORE.ConstQuery(142, 142), "测试玩家",
+                    Path(directory), "123",
+                )
 
     def test_bundled_jacket_atlas_contains_official_artwork(self):
         jacket = CORE.load_jacket_image(1)

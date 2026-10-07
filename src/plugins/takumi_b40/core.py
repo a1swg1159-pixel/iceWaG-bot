@@ -73,7 +73,7 @@ SCORE_LIST_PAGE_SIZE = 40
 CONST_CARD_H = 136
 CONST_CARD_GAP_Y = 12
 CONST_SECTION_H = 94
-CONST_PAGE_CONTENT_BOTTOM = 2760
+CONST_MAX_IMAGE_HEIGHT = 18000
 
 INK = (11, 20, 30)
 INK_2 = (22, 33, 44)
@@ -1854,42 +1854,7 @@ def _const_groups(
             item.song_id,
             difficulty_order.get(item.difficulty, 9),
         ))
-    return list(groups.items())
-
-
-def _const_pages(
-    groups: Sequence[Tuple[int, Sequence[ConstEntry]]],
-) -> List[List[Tuple[int, Sequence[ConstEntry], int]]]:
-    pages: List[List[Tuple[int, Sequence[ConstEntry], int]]] = []
-    page: List[Tuple[int, Sequence[ConstEntry], int]] = []
-    y = 430
-    for tenth, entries in groups:
-        offset = 0
-        while True:
-            rows_available = (
-                CONST_PAGE_CONTENT_BOTTOM - y - CONST_SECTION_H - 18
-            ) // (CONST_CARD_H + CONST_CARD_GAP_Y)
-            if (entries and rows_available < 1) or (
-                not entries and y + CONST_SECTION_H > CONST_PAGE_CONTENT_BOTTOM
-            ):
-                pages.append(page)
-                page = []
-                y = 430
-                continue
-            chunk = entries[offset:offset + rows_available * 5]
-            page.append((tenth, chunk, offset))
-            y += CONST_SECTION_H + math.ceil(len(chunk) / 5) * (
-                CONST_CARD_H + CONST_CARD_GAP_Y
-            ) + 18
-            offset += len(chunk)
-            if offset >= len(entries):
-                break
-            pages.append(page)
-            page = []
-            y = 430
-    if page:
-        pages.append(page)
-    return pages
+    return [(tenth, group) for tenth, group in groups.items() if group]
 
 
 def _draw_const_card(
@@ -1936,94 +1901,88 @@ def render_const_list_images(
     entries: Sequence[ConstEntry], query: ConstQuery, player_name: str,
     output_dir: Path, qq_user_id: str,
 ) -> List[Path]:
-    """Render every chart in range, grouped by descending exact constant."""
+    """Render the complete constant range as one continuous image."""
     cleanup_old_images(output_dir)
     groups = _const_groups(entries, query)
-    pages = _const_pages(groups)
-    totals = {tenth: group for tenth, group in groups}
     matched = [entry for _, group in groups for entry in group]
     overview = const_stats(matched)
     safe_user = "".join(char for char in str(qq_user_id) if char.isalnum()) or "user"
-    timestamp = time.time_ns()
-    paths: List[Path] = []
-    output_dir.mkdir(parents=True, exist_ok=True)
-
-    for page_index, sections in enumerate(pages):
-        content_y = 430
-        for _, chunk, _ in sections:
-            content_y += CONST_SECTION_H + math.ceil(len(chunk) / 5) * (
-                CONST_CARD_H + CONST_CARD_GAP_Y
-            ) + 18
-        canvas = Image.new("RGB", (CANVAS_W, max(670, content_y + 38)), B40_BG)
-        _draw_b40_background(canvas)
-        draw = ImageDraw.Draw(canvas)
-        draw.text((B40_MARGIN, 66), "TAKUMI³  /  CONST ARCHIVE",
-                  fill=B40_ACCENT, font=ui_font(28))
-        draw.text((B40_MARGIN, 112),
-                  _truncate(draw, player_name or "PLAYER", text_font(62), 1050),
-                  fill=B40_TEXT, font=text_font(62))
-        draw.text((1184, 66), "CONSTANT RANGE", fill=B40_MUTED,
-                  font=ui_font(25))
-        draw.text((1174, 99), query.label, fill=B40_TEXT,
-                  font=number_font(110))
-        draw.line((B40_MARGIN, 260, CANVAS_W - B40_MARGIN, 260),
-                  fill=B40_RULE, width=2)
-        metrics = (
-            ("CHARTS", str(overview.total)),
-            ("PLAYED", f"{overview.played} / {overview.total}"),
-            ("S+", str(overview.s_plus)),
-            ("FC", str(overview.fc)),
-            ("AJ", str(overview.aj)),
+    content_y = 430 + sum(
+        CONST_SECTION_H + math.ceil(len(group) / 5) * (
+            CONST_CARD_H + CONST_CARD_GAP_Y
+        ) + 18
+        for _, group in groups
+    )
+    canvas_h = max(670, content_y + 38)
+    if canvas_h > CONST_MAX_IMAGE_HEIGHT:
+        raise TakumiChartDataError(
+            "定数范围太大，单张长图会超出安全尺寸；请缩小查询范围。"
         )
-        for index, (label, value) in enumerate(metrics):
-            x = B40_MARGIN + index * 580
-            draw.text((x, 292), label, fill=B40_MUTED, font=ui_font(21))
-            draw.text((x, 321), value, fill=B40_TEXT_SOFT,
-                      font=number_font(39))
-        draw.line((B40_MARGIN, 395, CANVAS_W - B40_MARGIN, 395),
-                  fill=B40_RULE, width=2)
 
-        y = 430
-        for tenth, chunk, offset in sections:
-            stats = const_stats(totals[tenth])
-            heading = f"CONST {tenth / 10:.1f}"
-            if offset:
-                heading += "  /  CONTINUED"
-            draw.text((B40_MARGIN, y), heading, fill=B40_TEXT,
-                      font=number_font(39))
-            summary = (
-                f"{stats.total} CHARTS  /  {stats.played} PLAYED  /  "
-                f"S+ {stats.s_plus}  /  S {stats.s}  /  AAA {stats.aaa}"
-                f"  /  FC {stats.fc}  /  AJ {stats.aj}"
+    canvas = Image.new("RGB", (CANVAS_W, canvas_h), B40_BG)
+    _draw_b40_background(canvas)
+    draw = ImageDraw.Draw(canvas)
+    draw.text((B40_MARGIN, 66), "TAKUMI³  /  CONST ARCHIVE",
+              fill=B40_ACCENT, font=ui_font(28))
+    draw.text((B40_MARGIN, 112),
+              _truncate(draw, player_name or "PLAYER", text_font(62), 1050),
+              fill=B40_TEXT, font=text_font(62))
+    draw.text((1184, 66), "CONSTANT RANGE", fill=B40_MUTED,
+              font=ui_font(25))
+    draw.text((1174, 99), query.label, fill=B40_TEXT,
+              font=number_font(110))
+    draw.line((B40_MARGIN, 260, CANVAS_W - B40_MARGIN, 260),
+              fill=B40_RULE, width=2)
+    metrics = (
+        ("CHARTS", str(overview.total)),
+        ("PLAYED", f"{overview.played} / {overview.total}"),
+        ("S+", str(overview.s_plus)),
+        ("FC", str(overview.fc)),
+        ("AJ", str(overview.aj)),
+    )
+    for index, (label, value) in enumerate(metrics):
+        x = B40_MARGIN + index * 580
+        draw.text((x, 292), label, fill=B40_MUTED, font=ui_font(21))
+        draw.text((x, 321), value, fill=B40_TEXT_SOFT,
+                  font=number_font(39))
+    draw.line((B40_MARGIN, 395, CANVAS_W - B40_MARGIN, 395),
+              fill=B40_RULE, width=2)
+
+    y = 430
+    for tenth, group in groups:
+        stats = const_stats(group)
+        draw.text((B40_MARGIN, y), f"CONST {tenth / 10:.1f}",
+                  fill=B40_TEXT, font=number_font(39))
+        summary = (
+            f"{stats.total} CHARTS  /  {stats.played} PLAYED  /  "
+            f"S+ {stats.s_plus}  /  S {stats.s}  /  AAA {stats.aaa}"
+            f"  /  FC {stats.fc}  /  AJ {stats.aj}"
+        )
+        stat_font = ui_font(24)
+        stat_width = draw.textbbox((0, 0), summary, font=stat_font)[2]
+        draw.text((CANVAS_W - B40_MARGIN - stat_width, y + 14), summary,
+                  fill=B40_TEXT_SOFT, font=stat_font)
+        draw.line((B40_MARGIN, y + 64, CANVAS_W - B40_MARGIN, y + 64),
+                  fill=B40_RULE, width=1)
+        for index, entry in enumerate(group):
+            row, column = divmod(index, 5)
+            x = B40_MARGIN + column * (B40_COLUMN_W + B40_GAP)
+            card_y = y + CONST_SECTION_H + row * (
+                CONST_CARD_H + CONST_CARD_GAP_Y
             )
-            stat_font = ui_font(24)
-            stat_width = draw.textbbox((0, 0), summary, font=stat_font)[2]
-            draw.text((CANVAS_W - B40_MARGIN - stat_width, y + 14), summary,
-                      fill=B40_TEXT_SOFT, font=stat_font)
-            draw.line((B40_MARGIN, y + 64, CANVAS_W - B40_MARGIN, y + 64),
-                      fill=B40_RULE, width=1)
-            for local_index, entry in enumerate(chunk):
-                row, column = divmod(local_index, 5)
-                x = B40_MARGIN + column * (B40_COLUMN_W + B40_GAP)
-                card_y = y + CONST_SECTION_H + row * (
-                    CONST_CARD_H + CONST_CARD_GAP_Y
-                )
-                _draw_const_card(canvas, entry, x, card_y,
-                                 offset + local_index + 1)
-            y += CONST_SECTION_H + math.ceil(len(chunk) / 5) * (
-                CONST_CARD_H + CONST_CARD_GAP_Y
-            ) + 18
+            _draw_const_card(canvas, entry, x, card_y, index + 1)
+        y += CONST_SECTION_H + math.ceil(len(group) / 5) * (
+            CONST_CARD_H + CONST_CARD_GAP_Y
+        ) + 18
 
-        path = output_dir / (
-            f"takumi_const_{safe_user}_{timestamp}_{page_index + 1}.png"
-        )
-        credited = append_image_credit(
-            canvas, ui_font(22), footer_fill=B40_BG,
-            text_fill=B40_TEXT_SOFT, rule_fill=B40_ACCENT,
-        )
-        credited.save(path, format="PNG", optimize=True)
-        paths.append(path)
-    return paths
+    output_dir.mkdir(parents=True, exist_ok=True)
+    path = output_dir / f"takumi_const_{safe_user}_{time.time_ns()}.png"
+    credited = append_image_credit(
+        canvas, ui_font(22), footer_fill=B40_BG,
+        text_fill=B40_TEXT_SOFT, rule_fill=B40_ACCENT,
+    )
+    credited.save(path, format="PNG", optimize=True)
+    return [path]
 
 
 def generate_const_list_images(

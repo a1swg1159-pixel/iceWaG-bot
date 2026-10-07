@@ -34,3 +34,6 @@ differ. Integer queries include all ten tenths; ranges include both endpoints.
 The per-constant rank counts use the stored best score. FC and AJ counts use
 the separate regular-play `Medal` value (4 and 5 respectively), so an AJ does
 not depend on reaching the theoretical 1,000,000 score.
+The complete requested range renders as one continuous image. If a range would
+exceed the safe image height, the command asks for a narrower range rather than
+splitting the image.
