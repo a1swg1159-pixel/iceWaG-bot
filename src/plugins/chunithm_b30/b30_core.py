@@ -1,6 +1,5 @@
 """Chunithm score-image renderers for B30, B50, and related commands."""
 
-import io
 import math
 import random
 import time
@@ -12,6 +11,7 @@ import requests
 from PIL import Image, ImageDraw
 
 from src import chunithm_render as chu_theme
+from src.chunithm_assets import ARTWORK_CACHE, ASSETS_BASE_URLS, DOWNLOAD_POOL
 from src.score_level_query import (
     ConstantRangeQuery, LevelQuery, matches_level_query,
     parse_constant_range_query, parse_level_query,
@@ -19,11 +19,6 @@ from src.score_level_query import (
 
 
 BASE_URL = "https://maimai.lxns.net"
-ASSETS_BASE_URLS = [
-    "https://assets2.lxns.net",
-    "https://assets.lxns.net",
-    "https://static.maimai.lxns.net",
-]
 
 # Image dimensions are owned by the shared CHUNITHM theme.
 JACKET_SIZE = 185
@@ -49,6 +44,7 @@ def create_b30_style_image(
     player: "Player", scores: List["Score"], b30_rating: float,
     save_path: Path, bg_image_path: Optional[Path] = None,
 ) -> Path:
+    prefetch_report_assets(player, scores[:30])
     sections = [chu_theme.ScoreSection("", scores[:30])]
     image = chu_theme.render_score_sheet(
         player, sections, "BEST 30", rating=b30_rating,
@@ -191,26 +187,9 @@ class Player:
         key = (collection_type, collection_id)
         if key in self._collection_images:
             return self._collection_images[key]
-        headers = {
-            "User-Agent": "Mozilla/5.0", "Referer": f"{BASE_URL}/",
-            "Accept": "image/png,image/jpeg,image/webp,*/*",
-        }
-        for base in ASSETS_BASE_URLS:
-            try:
-                response = requests.get(
-                    f"{base}/chunithm/{collection_type}/{collection_id}.png",
-                    headers=headers, timeout=timeout, allow_redirects=True,
-                )
-                if response.status_code != 200 or len(response.content) <= 100:
-                    continue
-                with Image.open(io.BytesIO(response.content)) as source:
-                    image = source.convert("RGBA")
-                self._collection_images[key] = image
-                return image
-            except Exception:
-                continue
-        self._collection_images[key] = None
-        return None
+        image = ARTWORK_CACHE.get(collection_type, collection_id, timeout=timeout)
+        self._collection_images[key] = image
+        return image
 
     def load_character_image(self) -> Optional[Image.Image]:
         if self.character_image is None:
@@ -258,30 +237,10 @@ class Score:
         if self.jacket_image:
             return self.jacket_image
         jid = self.origin_id if self.level_index == 5 else self.id
-        urls = []
-        for base in ASSETS_BASE_URLS:
-            urls.extend([
-                f"{base}/chunithm/jacket/{jid}.png",
-                f"{base}/chunithm/jacket/{jid}.jpg",
-                f"{base}/chunithm/jacket/{jid:04d}.png",
-            ])
-        hdrs = {"User-Agent": "Mozilla/5.0", "Referer": f"{BASE_URL}/",
-                "Accept": "image/png,image/jpeg,image/webp,*/*"}
-        for url in urls:
-            try:
-                resp = requests.get(
-                    url, headers=hdrs, timeout=5, allow_redirects=True, verify=False)
-                if resp.status_code == 200 and len(resp.content) > 100:
-                    try:
-                        # Keep the source resolution: B30/B50 scale down, while
-                        # the single-chart image needs a much larger jacket.
-                        img = Image.open(io.BytesIO(resp.content)).convert("RGBA")
-                        self.jacket_image = img
-                        return img
-                    except Exception:
-                        continue
-            except Exception:
-                continue
+        image = ARTWORK_CACHE.get("jacket", jid)
+        if image is not None:
+            self.jacket_image = image
+            return image
         img = Image.new("RGBA", (JACKET_SIZE, JACKET_SIZE), (28, 31, 48, 255))
         d = ImageDraw.Draw(img)
         abbr = self.song_name[:2] if len(
@@ -292,6 +251,32 @@ class Score:
                abbr, fill=COLOR_GOLD, font=f)
         self.jacket_image = img
         return img
+
+
+def _prefetch_avatar(player: Player) -> None:
+    if player.load_map_icon_image() is None:
+        player.load_character_image()
+
+
+def prefetch_report_assets(player: Player, scores: Sequence[Score]) -> None:
+    """Warm only artwork the report needs, using a process-wide six-worker pool.
+
+    Offline/demo objects keep their own loaders; production Score objects retain
+    downloaded images for drawing, without keeping every player's data globally.
+    """
+    futures = []
+    if isinstance(player, Player):
+        futures.extend(DOWNLOAD_POOL.submit(loader) for loader in (
+            player.load_name_plate_image, player.load_trophy_image,
+            lambda: _prefetch_avatar(player),
+        ))
+    seen = set()
+    for score in scores:
+        if isinstance(score, Score) and id(score) not in seen:
+            seen.add(id(score))
+            futures.append(DOWNLOAD_POOL.submit(score.load_jacket_image))
+    for future in futures:
+        future.result()
 
 
 def get_player_info(credential: str) -> Optional[Player]:
@@ -362,6 +347,7 @@ def create_push_score_image(
     player: Player, score: Score, save_path: Path,
     bg_image_path: Optional[Path] = None, title: str = "随机推分",
 ) -> Path:
+    prefetch_report_assets(player, [score])
     image = chu_theme.render_single_sheet(player, score, title)
     return chu_theme.save_report(image, save_path)
 
@@ -392,7 +378,6 @@ def generate_push_score_image(
     if not player or not scores:
         return None
     score = random.choice(scores)
-    score.load_jacket_image()
     bg = Path("data") / "b30_assets" / "bg.png"
     save = output_dir / f"push_{user_id}_{score.id}.png"
     return create_push_score_image(player, score, save, bg), score
@@ -467,6 +452,7 @@ def create_b50_style_image(
     player: Player, old_scores: List[Score], new_scores: List[Score],
     b50_rating: float, save_path: Path, bg_image_path: Optional[Path] = None,
 ) -> Path:
+    prefetch_report_assets(player, list(old_scores[:30]) + list(new_scores[:20]))
     sections = [
         chu_theme.ScoreSection("OLD BEST 30", old_scores[:30]),
         chu_theme.ScoreSection("NEW BEST 20", new_scores[:20], chu_theme.CYAN),
@@ -533,6 +519,7 @@ def create_chunithm_score_list_images(
     for page_index in range(page_count):
         start = page_index * SCORE_LIST_PAGE_SIZE
         page_scores = scores[start:start + SCORE_LIST_PAGE_SIZE]
+        prefetch_report_assets(player, page_scores)
         sections = [chu_theme.ScoreSection(
             f"{page_index + 1} / {page_count}" if page_count > 1 else "",
             page_scores, chu_theme.CYAN, start,
@@ -593,7 +580,6 @@ def generate_fu_image(
     if not above:
         return None
     score = random.choice(above)
-    score.load_jacket_image()
     bg = Path("data") / "b30_assets" / "bg.png"
     save = output_dir / f"fu_{user_id}_{score.id}.png"
     return create_push_score_image(player, score, save, bg, title="装福"), score
@@ -704,6 +690,7 @@ def create_chunithm_fitconst_image(
     ordered = _sorted_fit_entries(entries)
     if chu_theme.fit_sheet_height(len(ordered)) > FIT_MAX_HEIGHT:
         raise ValueError("范围内谱面太多，单张图片会超出安全尺寸，请缩小定数范围")
+    prefetch_report_assets(player, [entry.play for entry in ordered])
     image = chu_theme.render_fit_sheet(player, ordered, query.label)
     safe_user = "".join(c for c in str(user_id) if c.isalnum()) or "user"
     path = output_dir / f"chu_fitconst_{safe_user}_{time.time_ns()}.png"

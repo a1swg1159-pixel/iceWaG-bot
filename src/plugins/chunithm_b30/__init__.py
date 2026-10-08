@@ -218,7 +218,6 @@ async def handle_chu(event: MessageEvent, args=CommandArg()):
 
     if sub == "b30":
         await chu_cmd.send("B30 图片生成中...等着喵。")
-        await asyncio.sleep(1.5)
         image_path = await asyncio.to_thread(
             generate_b30_image, credential, OUTPUT_DIR, user_id
         )

@@ -22,6 +22,7 @@ data/takumi_outputs/
 
 # 运行日志与按需下载的图片缓存
 data/logs/
+data/b30_asset_cache/
 data/maimai_assets/
 data/ongeki_official/
 

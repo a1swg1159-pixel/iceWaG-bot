@@ -733,5 +733,6 @@ def save_report(image: Image.Image, path: Path) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
     credited = append_image_credit(image, font(28), footer_fill=WHITE,
                                     text_fill=MUTED, rule_fill=YELLOW)
-    credited.save(path, format="PNG", optimize=True)
+    # PNG remains lossless; avoid the expensive maximum-compression optimizer.
+    credited.save(path, format="PNG", optimize=False, compress_level=3)
     return path

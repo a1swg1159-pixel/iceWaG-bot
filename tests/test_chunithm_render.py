@@ -10,6 +10,7 @@ from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
 from PIL import Image
+from src.chunithm_assets import ArtworkCache
 
 
 CORE_PATH = (
@@ -54,6 +55,16 @@ class DummyScore:
 
 
 class ChunithmRendererTests(unittest.TestCase):
+    def setUp(self):
+        cache_directory = tempfile.TemporaryDirectory()
+        self.addCleanup(cache_directory.cleanup)
+        cache_patch = patch.object(CORE, "ARTWORK_CACHE", ArtworkCache(cache_directory.name))
+        cache_patch.start()
+        self.addCleanup(cache_patch.stop)
+        network_patch = patch.object(CORE.requests, "get", side_effect=AssertionError("Unexpected network request"))
+        network_patch.start()
+        self.addCleanup(network_patch.stop)
+
     def test_player_reads_all_equipped_collection_ids(self):
         player = CORE.Player({"data": {
             "name": "TEST", "rating": 16.42, "level": 42, "reborn_count": 3,
@@ -114,6 +125,82 @@ class ChunithmRendererTests(unittest.TestCase):
             self.assertIsNone(failed.load_name_plate_image())
             self.assertIsNone(failed.load_name_plate_image())
             self.assertEqual(get.call_count, len(CORE.ASSETS_BASE_URLS))
+
+    def test_b50_queries_refresh_scores_but_reuse_public_artwork(self):
+        buffer = io.BytesIO()
+        Image.new("RGBA", (96, 96), (120, 180, 80, 255)).save(buffer, format="PNG")
+        payload = buffer.getvalue()
+        score_calls = 0
+        profile_calls = 0
+        artwork_calls = []
+
+        def respond(url, **kwargs):
+            nonlocal score_calls, profile_calls
+            if url == CORE._player_api_url():
+                profile_calls += 1
+                data = {"name": "TEST", "rating": 16.42, "name_plate": 19, "map_icon": 20}
+            elif url == CORE._player_api_url("/bests"):
+                score_calls += 1
+                data = {"bests": [{"id": 101, "song_name": "TRACK", "level": "14+",
+                                   "level_index": 3, "rank": "sssp", "rating": 16.42,
+                                   "score": 1009900 + score_calls}], "new_bests": []}
+            else:
+                self.assertNotIn("Authorization", kwargs["headers"])
+                artwork_calls.append(url)
+                return SimpleNamespace(status_code=200, content=payload)
+            self.assertEqual(kwargs["headers"]["Authorization"], "Bearer test-token")
+            return SimpleNamespace(raise_for_status=lambda: None, json=lambda: {"data": data})
+
+        catalog = {101: {"id": 101, "difficulties": [{"difficulty": 3, "level_value": 14.7}]}}
+        with tempfile.TemporaryDirectory() as directory, \
+             patch.object(CORE, "ALL_SONGS_CACHE", catalog), \
+             patch.object(CORE.requests, "get", side_effect=respond):
+            first = CORE.generate_b50_image("Bearer test-token", Path(directory), "test")
+            with Image.open(first) as image:
+                first_pixels = image.tobytes()
+            # A new cache instance models restarting the bot/container.
+            CORE.ARTWORK_CACHE = ArtworkCache(CORE.ARTWORK_CACHE.root)
+            second = CORE.generate_b50_image("Bearer test-token", Path(directory), "test")
+            with Image.open(second) as image:
+                self.assertNotEqual(first_pixels, image.tobytes())
+        self.assertEqual((profile_calls, score_calls), (2, 2))
+        self.assertEqual(len(artwork_calls), 3)
+
+    def test_all_report_wrappers_prefetch_only_their_visible_scores(self):
+        scores = [DummyScore() for _ in range(60)]
+        player = DummyPlayer()
+        theme = CORE.chu_theme
+        with tempfile.TemporaryDirectory() as directory, \
+             patch.object(CORE, "prefetch_report_assets") as prefetch, \
+             patch.object(theme, "render_score_sheet"), \
+             patch.object(theme, "render_single_sheet"), \
+             patch.object(theme, "render_fit_sheet"), \
+             patch.object(theme, "save_report", return_value=Path(directory) / "test.png"):
+            path = Path(directory) / "test.png"
+            CORE.create_b30_style_image(player, scores, 16.42, path)
+            self.assertEqual(prefetch.call_args.args[1], scores[:30])
+            CORE.create_b50_style_image(player, scores[:35], scores[35:], 16.42, path)
+            self.assertEqual(prefetch.call_args.args[1], scores[:30] + scores[35:55])
+            CORE.create_push_score_image(player, scores[0], path)
+            self.assertEqual(prefetch.call_args.args[1], [scores[0]])
+            prefetch.reset_mock()
+            CORE.create_chunithm_score_list_images(player, scores, CORE.parse_level_query("14+"), Path(directory), "test")
+            self.assertEqual([call.args[1] for call in prefetch.call_args_list], [scores[:50], scores[50:]])
+            entries = [CORE.FitConstEntry(101, "TRACK", 3, 14.7, scores[0])]
+            CORE.create_chunithm_fitconst_image(player, entries, CORE.parse_constant_range_query("14"), Path(directory), "test")
+            self.assertEqual(prefetch.call_args.args[1], [scores[0]])
+
+    def test_fast_png_save_preserves_every_pixel_including_credit(self):
+        theme = CORE.chu_theme
+        source = theme.render_score_sheet(DummyPlayer(), [theme.ScoreSection("", [DummyScore()])], "BEST 30")
+        expected = theme.append_image_credit(source, theme.font(28), footer_fill=theme.WHITE,
+                                             text_fill=theme.MUTED, rule_fill=theme.YELLOW)
+        with tempfile.TemporaryDirectory() as directory:
+            path = theme.save_report(source, Path(directory) / "fast.png")
+            with Image.open(path) as saved:
+                self.assertEqual(saved.size, expected.size)
+                self.assertEqual(saved.mode, expected.mode)
+                self.assertEqual(saved.tobytes(), expected.tobytes())
 
     def test_invalid_collection_ids_do_not_become_request_paths(self):
         player = CORE.Player({})
