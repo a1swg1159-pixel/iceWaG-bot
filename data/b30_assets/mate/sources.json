@@ -1,0 +1,159 @@
+{
+  "theme": "CHUNITHM Mate",
+  "reference": "https://chunithm.sega.jp/",
+  "logo": {
+    "file": "logo.webp",
+    "source": "https://chunithm.sega.jp/storage/top/pc/top_main_logo.webp",
+    "copyright": "SEGA"
+  },
+  "background": {
+    "file": "background.jpg",
+    "source_page": "https://chunithm.sega.jp/",
+    "note": "Official background cached during the initial visual-reference collection; original direct asset URL was not retained.",
+    "copyright": "SEGA"
+  },
+  "result_ranks": {
+    "directory": "result_ranks",
+    "source_repository": "https://github.com/saltcute/maidraw",
+    "source_commit": "cf0798373ce0c88a132280f7866be68952327de4",
+    "source_directory": "assets/themes/chunithm/best/mate/assets/achievement",
+    "source_template": "https://raw.githubusercontent.com/saltcute/maidraw/cf0798373ce0c88a132280f7866be68952327de4/assets/themes/chunithm/best/mate/assets/achievement/{GRADE}.webp",
+    "grades": ["D", "C", "B", "BB", "BBB", "A", "AA", "AAA", "S", "SP", "SS", "SSP", "SSS", "SSSP"],
+    "local_filename_template": "rank_{lowercase_grade}.webp",
+    "visual_reference_page": "https://info-chunithm.sega.jp/12423/",
+    "visual_reference_image": "https://chunithm.sega.jp/storage/play/mate/photo03.webp",
+    "retrieved_on": "2026-10-08",
+    "artwork_copyright": "SEGA",
+    "source_repository_license": "MIT; reproduced in result_ranks/LICENSE.maidraw.txt. Game artwork remains SEGA's property.",
+    "note": "Unmodified transparent WebP files from maidraw's MATE-specific assets, not directly downloaded from SEGA. SSS appearance visually compared with SEGA's MATE result-screen reference. Rendering trims transparent margins and scales proportionally to an identical ink height: 36px on both list card types, 76px on large single-song reports. No per-grade width cap, NET web badges or AI redrawing."
+  },
+  "typography": {
+    "directory": "fonts",
+    "retrieved_on": "2026-10-08",
+    "reference_page": "https://chunithm.sega.jp/",
+    "reference_css": "https://chunithm.sega.jp/root/root.css",
+    "verified_website_family": "Noto Sans JP",
+    "note": "The official MATE website imports Noto Sans JP (400/900); this does not establish the arcade UI's font family. The bundled full-coverage Noto Sans CJK JP Bold is from the same family, chosen for readable Chinese/Japanese titles. Outfit and Rajdhani are aesthetic companions, not claimed official arcade fonts. Original font binaries, no subsetting, no online runtime font requests.",
+    "families": [
+      {
+        "family": "Noto Sans CJK JP",
+        "role": "Chinese/Japanese song titles, player names and headings",
+        "source": "https://github.com/notofonts/noto-cjk",
+        "version": "Sans2.004",
+        "license": "SIL Open Font License 1.1",
+        "license_file": "OFL-NotoSansCJK.txt",
+        "license_source": "https://raw.githubusercontent.com/notofonts/noto-cjk/main/Sans/LICENSE",
+        "files": [{
+          "file": "NotoSansCJKjp-Bold.otf",
+          "url": "https://raw.githubusercontent.com/notofonts/noto-cjk/Sans2.004/Sans/OTF/Japanese/NotoSansCJKjp-Bold.otf",
+          "sha256": "e53dcb0dcb2922e45d01aae1ebd2f382bb81d4229b18b6b883bd170678af1f76"
+        }]
+      },
+      {
+        "family": "Outfit",
+        "role": "Geometric display headings (ExtraBold) and UI labels (SemiBold)",
+        "source": "https://github.com/Outfitio/Outfit-Fonts",
+        "license": "SIL Open Font License 1.1",
+        "license_file": "OFL-Outfit.txt",
+        "license_source": "https://raw.githubusercontent.com/Outfitio/Outfit-Fonts/main/OFL.txt",
+        "files": [
+          {
+            "file": "Outfit-ExtraBold.ttf",
+            "url": "https://raw.githubusercontent.com/Outfitio/Outfit-Fonts/main/fonts/ttf/Outfit-ExtraBold.ttf",
+            "sha256": "0f028cbdc61a588bc44fef911e8d2bcfc0bc05b241a9b797686024d269d964b6"
+          },
+          {
+            "file": "Outfit-SemiBold.ttf",
+            "url": "https://raw.githubusercontent.com/Outfitio/Outfit-Fonts/main/fonts/ttf/Outfit-SemiBold.ttf",
+            "sha256": "bf2e1d2a6ec2a67952e8b36edd2b2bb9f340c0cdd10b0ad5145b4dbbc1339608"
+          }
+        ]
+      },
+      {
+        "family": "Rajdhani",
+        "role": "Scores, ratings and chart constants with stable tabular digits",
+        "source": "https://github.com/google/fonts/tree/main/ofl/rajdhani",
+        "license": "SIL Open Font License 1.1",
+        "license_file": "OFL-Rajdhani.txt",
+        "license_source": "https://raw.githubusercontent.com/google/fonts/main/ofl/rajdhani/OFL.txt",
+        "files": [{
+          "file": "Rajdhani-Bold.ttf",
+          "url": "https://raw.githubusercontent.com/google/fonts/main/ofl/rajdhani/Rajdhani-Bold.ttf",
+          "sha256": "691470dd3286a14e9677940d0bf75796179841ba5215cbda1a2c8910a3226afd"
+        }]
+      }
+    ]
+  },
+  "player_collections": {
+    "documentation": "https://maimai.lxns.net/docs/api/chunithm",
+    "avatar_field": "map_icon.id (character.id is a fallback only)",
+    "name_plate_field": "name_plate.id",
+    "primary_trophy_field": "trophy (name/color; image via trophy.id only when color=image)",
+    "asset_base": "https://assets2.lxns.net/chunithm",
+    "asset_paths": ["icon/{id}.png", "plate/{id}.png", "trophy/{id}.png", "character/{id}.png"],
+    "note": "Runtime collections come from the player's equipped items in the LXNS response. Public asset requests never include the OAuth credential. Missing items are omitted. Preview icon 19 and plate 10131 are public examples from the API docs, not a real account's collected data; preview files stay under tmp and are not bundled theme assets."
+  },
+  "arcade_profile": {
+    "reference_page": "https://info-chunithm.sega.jp/12423/",
+    "official_selection_reference": "https://info-chunithm.sega.jp/wp-content/uploads/2026/07/3a3bc6b873661d065e844628fdc7fd21.png",
+    "unobstructed_result_reference_page": "https://note.com/cha75739340/n/n6bb58f15c32e",
+    "unobstructed_result_reference_image": "https://assets.st-note.com/production/uploads/images/318884934/rectangle_large_type_2_37844f8b7cd626dccf0617b063cea07a.jpeg",
+    "native_coordinate_size": [576, 228],
+    "rendered_size": [660, 261],
+    "note": "Reference photographs are used for visual inspection only and are not bundled or rendered as player assets. Full nameplate transparency is retained. Trophy above, level/name at center, portrait on right, rating/emblem below. Nicknames and ordinary trophies both use Noto Sans CJK JP Bold as requested, for Latin as well as CJK labels. Default frame and text trophy capsule are locally reconstructed, not a pixel-exact extraction. Trophy and body share an inset native right edge at x=556, avoiding alpha padding in 576px-wide plate assets. Body, avatar and medals are cropped to [144,102,556,194]. The selection screen's default plate has a blank left area, which must not be mistaken for the full illustrated plate boundary. Ticket, battle rank and possession decorations are omitted where accurate state/assets are unavailable. No duplicate top-right rating or invented level/medal data.",
+    "rating_atlas": {
+      "directory": "profile_rating",
+      "source_repository": "https://github.com/saltcute/maidraw",
+      "source_commit": "cf0798373ce0c88a132280f7866be68952327de4",
+      "source_directory": "assets/themes/chunithm/best/versionless/rating/numberMaps",
+      "variants": ["white", "bronze", "silver", "gold", "platinum", "rainbow", "kiwami"],
+      "license_file": "result_ranks/LICENSE.maidraw.txt",
+      "note": "Versionless player-rating atlases, NOT MATE score digits. 4x4 tiles: 0-9, decimal, RATING label on last row. Green/orange/red/purple variants tint the white atlas locally; higher tiers use original colours. Rating thresholds checked against LXNS src/utils/color.ts and maidraw profile.ts."
+    },
+    "emblems": {
+      "directory": "profile",
+      "source_repository": "https://github.com/Lxns-Network/maimai-prober-frontend",
+      "source_commit": "6614ff5a96cbc56175b7595d6ea9bb6cbdc28f95",
+      "source_directory": "public/assets/chunithm",
+      "files": ["reborn_star.webp", "class_emblem/base/{1..6}.webp", "class_emblem/medal/{1..6}.webp"],
+      "license_file": "profile/LICENSE.lxns.txt",
+      "copyright": "Game artwork remains SEGA's property; repository MIT license retained."
+    },
+    "retrieved_on": "2026-10-08"
+  },
+  "score_digits": {
+    "status": "font_rendered_pending_verified_mate_artwork",
+    "note": "Searched public resources on 2026-10-08. AchievementNumber images in Nick-bit233/mai-gen-videob50 were added in 2025 and visually use the older italic rainbow design, not the upright MATE result digits. Those candidate images are kept only in tmp and are not used by the renderer. Scores remain Rajdhani Bold until an authentic complete MATE set can be verified."
+  },
+  "header_characters": {
+    "source_page": "https://chunithm.sega.jp/character/",
+    "catalog": "https://chunithm.sega.jp/storage/json/chara.json",
+    "copyright": "SEGA and the respective illustrators; official artwork, not AI generated.",
+    "retrieved_on": "2026-10-08",
+    "files": [
+      {
+        "file": "m_4.webp",
+        "name": "角倉 ひなた",
+        "artist": "栗原 さくら",
+        "source": "https://chunithm.sega.jp/storage/chara/chunithm-mate/illustration/m_4.webp",
+        "sha256": "9fda2ad8b4558c054721071581be73c3d246cbd03cc744e154302a6f75ee293e"
+      },
+      {
+        "file": "m_5.webp",
+        "name": "如月 レイナ",
+        "artist": "kodamazon",
+        "source": "https://chunithm.sega.jp/storage/chara/chunithm-mate/illustration/m_5.webp",
+        "sha256": "e34312f6167801240c0d6ece5ed087030c8d3ab8a2dae371ceea91b4a48555c3"
+      },
+      {
+        "file": "m_6.webp",
+        "name": "レイ=ジンジャー",
+        "artist": "きんく",
+        "source": "https://chunithm.sega.jp/storage/chara/chunithm-mate/illustration/m_6.webp",
+        "sha256": "420fc663dee916648c576290a0b6dd578c70d22c614cdc2b1f0a17d9f5308638"
+      }
+    ],
+    "note": "Unmodified source WebP files are bundled. The B30/B50 header crops upper-body portraits at render time onto a softly faded official-theme background. Composition is confined between the player panel and enlarged 550x250 MATE logo, within a 270px header. No extra header/content gap; visible profile art is bottom-aligned with the content boundary. Other report types keep their existing header layout. Missing files fall back without network requests."
+  },
+  "layout": "Original locally drawn score-report layout with bundled MATE assets. Report-title slogans are omitted; equipped collections and the player's rating occupy an arcade-style top-left panel, with only the MATE logo on the right. No online image-generation dependency."
+}

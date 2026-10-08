@@ -4,11 +4,30 @@ from src.score_level_query import (
     LevelQueryError,
     display_level_from_constant,
     matches_level_query,
+    parse_constant_range_query,
     parse_level_query,
 )
 
 
 class ScoreLevelQueryTests(unittest.TestCase):
+    def test_constant_range_uses_takumi_const_buckets(self):
+        cases = {
+            "14": (140, 149),
+            "14.2": (142, 142),
+            "14+": (145, 149),
+            "14.2-14.8": (142, 148),
+            "14-15": (140, 159),
+            "Lv.14＋": (145, 149),
+            "20": (200, 200),
+        }
+        for text, expected in cases.items():
+            with self.subTest(text=text):
+                query = parse_constant_range_query(text)
+                self.assertEqual((query.lower, query.upper), expected)
+        for text in ("14.25", "15-14", "0", "20+", "14.2.3"):
+            with self.subTest(text=text), self.assertRaises(LevelQueryError):
+                parse_constant_range_query(text)
+
     def test_integer_and_plus_are_display_buckets(self):
         level_15 = parse_level_query("15")
         level_14_plus = parse_level_query("14+")

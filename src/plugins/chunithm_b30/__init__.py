@@ -8,10 +8,13 @@ from nonebot.adapters.onebot.v11 import MessageEvent, MessageSegment
 from nonebot.params import CommandArg
 
 from src.common import at_me_only, random_delay
-from src.score_level_query import LevelQueryError, parse_level_query
+from src.score_level_query import (
+    LevelQueryError, parse_constant_range_query, parse_level_query,
+)
 from .b30_core import (
     generate_b30_image, generate_b50_image, generate_chunithm_score_list_images,
-    generate_fu_image, generate_push_score_image, get_player_info,
+    generate_chunithm_fitconst_image, generate_fu_image,
+    generate_push_score_image, get_player_info,
 )
 from .oauth import (
     create_authorization_url, exchange_authorization_code, get_access_token,
@@ -67,6 +70,7 @@ async def handle_chu(event: MessageEvent, args=CommandArg()):
             "/chu b30 - 生成 B30 图片\n"
             "/chu b50 - 生成 B50 图片\n"
             "/chu score <任意等级或定数> - 生成该档成绩列表\n"
+            "/chu fitconst <定数范围> - 生成个人拟合定数表\n"
             "/chu 推分 - 随机抽一首歌\n"
             "/chu 装福 - 随机抽一首上分曲\n"
             "——————————————\n"
@@ -141,6 +145,17 @@ async def handle_chu(event: MessageEvent, args=CommandArg()):
         except LevelQueryError as exc:
             await chu_cmd.finish(MessageSegment.at(user_id) + f"\n参数错误：{exc}。")
 
+    if sub == "fitconst":
+        if not sub_args.strip():
+            await chu_cmd.finish(
+                MessageSegment.at(user_id)
+                + "\n请发送 /chu fitconst <定数范围>；如 14、14.2、14+、14.2-14.8。"
+            )
+        try:
+            parse_constant_range_query(sub_args)
+        except LevelQueryError as exc:
+            await chu_cmd.finish(MessageSegment.at(user_id) + f"\n参数错误：{exc}。")
+
     credential, auth_error = await _resolve_credential(user_id)
     if not credential:
         await chu_cmd.finish(
@@ -173,6 +188,33 @@ async def handle_chu(event: MessageEvent, args=CommandArg()):
                 + f"\nLv.{sub_args.strip()} 成绩列表 {index}/{len(image_paths)}"
             )
         await chu_cmd.finish(f"共找到 {matched} 张谱面的成绩。")
+
+    if sub == "fitconst":
+        await chu_cmd.send(f"正在生成 {sub_args.strip()} 的拟合定数表...稍等喵。")
+        try:
+            result = await asyncio.to_thread(
+                generate_chunithm_fitconst_image,
+                credential, OUTPUT_DIR, user_id, sub_args,
+            )
+        except ValueError as exc:
+            await chu_cmd.finish(MessageSegment.at(user_id) + f"\n{exc}。")
+        if result is None:
+            await chu_cmd.finish(
+                MessageSegment.at(user_id)
+                + "\n曲目或成绩获取失败，请稍后重试，并确认 LXNS 已同步中二成绩。"
+            )
+        image_path, matched = result
+        if image_path is None:
+            await chu_cmd.finish(
+                MessageSegment.at(user_id)
+                + f"\n没有找到 {sub_args.strip()} 范围内可拟合的已游玩成绩。"
+            )
+        await chu_cmd.finish(
+            MessageSegment.at(user_id)
+            + "\n"
+            + MessageSegment.image(image_path.resolve().as_uri())
+            + f"\n共 {matched} 张谱面；拟合值依据你的成绩估算，非官方定数。"
+        )
 
     if sub == "b30":
         await chu_cmd.send("B30 图片生成中...等着喵。")

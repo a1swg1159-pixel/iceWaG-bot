@@ -15,6 +15,48 @@ class LevelQueryError(ValueError):
 
 
 @dataclass(frozen=True)
+class ConstantRangeQuery:
+    lower: int
+    upper: int
+
+    @property
+    def label(self) -> str:
+        if self.lower == self.upper:
+            return f"{self.lower / 10:.1f}"
+        return f"{self.lower / 10:.1f}–{self.upper / 10:.1f}"
+
+
+def parse_constant_range_query(value: str) -> ConstantRangeQuery:
+    """Parse inclusive tenths using the same buckets as /takumi const."""
+    raw = str(value or "").strip().replace("．", ".").replace("＋", "+")
+    raw = re.sub(r"^lv\.?\s*", "", raw, flags=re.IGNORECASE)
+    endpoint = r"(\d{1,2}\.\d|\d{1,2}\+?)"
+    match = re.fullmatch(
+        rf"\s*{endpoint}(?:\s*(?:-|－|~|～|至|到)\s*{endpoint})?\s*",
+        raw,
+    )
+    if not match:
+        raise LevelQueryError("格式应为 14、14.2、14+ 或 14.2-14.8")
+
+    def bounds(text: str) -> tuple[int, int]:
+        if text.endswith("+"):
+            base = int(text[:-1]) * 10
+            return base + 5, base + 9
+        if "." in text:
+            whole, fraction = text.split(".")
+            tenth = int(whole) * 10 + int(fraction)
+            return tenth, tenth
+        base = int(text) * 10
+        return base, min(base + 9, 200)
+
+    left = bounds(match.group(1))
+    right = bounds(match.group(2)) if match.group(2) else left
+    if left[0] < 10 or right[1] > 200 or left[0] > right[1]:
+        raise LevelQueryError("定数范围需从小到大，且在 1.0～20.0 之间")
+    return ConstantRangeQuery(left[0], right[1])
+
+
+@dataclass(frozen=True)
 class LevelQuery:
     raw: str
     label: str
