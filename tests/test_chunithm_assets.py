@@ -280,5 +280,70 @@ class ArtworkCacheTests(unittest.TestCase):
         self.assertEqual(len(urls), len(assets.ASSETS_BASE_URLS) * 2)
 
 
+    def test_decoded_and_thumbnail_hits_do_not_repeat_decode_or_resize(self):
+        with patch.object(assets.requests, "get", return_value=self.response()) as get, \
+             patch.object(self.cache, "_decode", wraps=self.cache._decode) as decode, \
+             patch.object(assets.ImageOps, "fit", wraps=assets.ImageOps.fit) as fit:
+            first = self.cache.thumbnail("jacket", 1, 170)
+            expected_pixels = first.tobytes()
+            first.putpixel((0, 0), (0, 0, 0, 0))
+            self.now += 42
+            second = self.cache.thumbnail("jacket", 1, 170)
+            original = self.cache.get("jacket", 1)
+        self.assertEqual((get.call_count, decode.call_count, fit.call_count), (1, 1, 1))
+        self.assertEqual(second.tobytes(), expected_pixels)
+        self.assertEqual(original.size, (96, 64))
+        self.assertEqual(second.size, (170, 170))
+        self.assertEqual((self.root / "jacket_1.img").stat().st_mtime, self.now)
+
+    def test_thumbnail_matches_full_quality_lanczos_for_each_card_size(self):
+        with patch.object(assets.requests, "get", return_value=self.response()):
+            original = self.cache.get("jacket", 1)
+            for size in (170, 188, 584):
+                result = self.cache.thumbnail("jacket", 1, size)
+                expected = assets.ImageOps.fit(original, (size, size), method=getattr(Image, "Resampling", Image).LANCZOS)
+                self.assertEqual(result.tobytes(), expected.tobytes())
+
+    def test_memory_caches_are_byte_bounded_and_idle_entries_expire(self):
+        cache = assets.ArtworkCache(self.root, clock=lambda: self.now, memory_bytes=100_000)
+        with patch.object(assets.requests, "get", return_value=self.response()):
+            for asset_id in range(10):
+                cache.thumbnail("jacket", asset_id, 70)
+        for memory in (cache._decoded, cache._thumbnails):
+            self.assertLessEqual(memory.bytes, 50_000)
+            self.assertNotIn(("jacket", 0), memory.items)
+        self.now += 31*86400
+        cache.cleanup(force=True)
+        self.assertEqual(cache._decoded.bytes + cache._thumbnails.bytes, 0)
+
+    def test_disk_eviction_also_invalidates_decoded_and_thumbnail_entries(self):
+        with patch.object(assets.requests, "get", return_value=self.response()):
+            self.cache.thumbnail("jacket", 1, 170)
+        self.cache.max_bytes = 0
+        self.cache.cleanup(force=True)
+        self.assertFalse(self.cache._decoded.items)
+        self.assertFalse(self.cache._thumbnails.items)
+
+    def test_distinct_disk_hits_can_decode_concurrently(self):
+        self.cache_file("jacket_1.img")
+        self.cache_file("jacket_2.img")
+        barrier = threading.Barrier(2)
+        decode = self.cache._decode
+
+        def simultaneous_decode(payload):
+            barrier.wait(timeout=3)
+            return decode(payload)
+
+        with patch.object(self.cache, "_decode", side_effect=simultaneous_decode), \
+             ThreadPoolExecutor(max_workers=2) as pool:
+            results = list(pool.map(lambda i: self.cache.get("jacket", i), (1, 2)))
+        self.assertTrue(all(result is not None for result in results))
+
+    def test_invalid_thumbnail_arguments_do_not_fetch(self):
+        for size in (-1, 0, 2049, "170", True):
+            self.assertIsNone(self.cache.thumbnail("jacket", 1, size))
+        self.assertIsNone(self.cache.thumbnail("jacket", "../private", 170))
+
+
 if __name__ == "__main__":
     unittest.main()

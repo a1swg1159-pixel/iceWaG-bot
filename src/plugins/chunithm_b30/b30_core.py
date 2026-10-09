@@ -3,12 +3,13 @@
 import math
 import random
 import time
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 import requests
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageOps
 
 from src import chunithm_render as chu_theme
 from src.chunithm_assets import ARTWORK_CACHE, ASSETS_BASE_URLS, DOWNLOAD_POOL
@@ -34,6 +35,14 @@ RANK_MAPPING = {
 ALL_SONGS_CACHE: Dict[int, Dict[str, Any]] = {}
 ALL_SONGS_LAST_ATTEMPT: Optional[float] = None
 SONG_CACHE_RETRY_SECONDS = 300
+SCORE_QUERY_POOL = ThreadPoolExecutor(max_workers=4, thread_name_prefix="chu-query")
+
+
+def _get_player_and_scores(credential, score_loader):
+    """Independent API reads can overlap; never cache account/score responses."""
+    player = SCORE_QUERY_POOL.submit(get_player_info, credential)
+    scores = SCORE_QUERY_POOL.submit(score_loader, credential)
+    return player.result(), scores.result()
 
 
 def get_font(size: int):
@@ -228,10 +237,21 @@ class Score:
         self.rank: str = RANK_MAPPING.get(raw_rank, raw_rank.upper())
         self.origin_id: int = data.get("origin_id", self.id)
         self.jacket_image: Optional[Image.Image] = None
+        self._jacket_thumbnails: Dict[int, Image.Image] = {}
         self.final_level, self.level_is_constant = _resolve_song_level_value(
             song_id=self.origin_id if self.level_index == 5 else self.id,
             level_index=self.level_index, fallback=self.raw_level,
         )
+
+    def load_jacket_thumbnail(self, size: int) -> Image.Image:
+        if size not in self._jacket_thumbnails:
+            image = None
+            if self.jacket_image is None:
+                image = ARTWORK_CACHE.thumbnail("jacket", self.origin_id if self.level_index == 5 else self.id, size)
+            if image is None:
+                image = ImageOps.fit(self.load_jacket_image(), (size, size), method=chu_theme.LANCZOS)
+            self._jacket_thumbnails[size] = image
+        return self._jacket_thumbnails[size]
 
     def load_jacket_image(self) -> Image.Image:
         if self.jacket_image:
@@ -258,7 +278,7 @@ def _prefetch_avatar(player: Player) -> None:
         player.load_character_image()
 
 
-def prefetch_report_assets(player: Player, scores: Sequence[Score]) -> None:
+def prefetch_report_assets(player: Player, scores: Sequence[Score], *, jacket_size=chu_theme.CARD_JACKET_SIZE) -> None:
     """Warm only artwork the report needs, using a process-wide six-worker pool.
 
     Offline/demo objects keep their own loaders; production Score objects retain
@@ -274,7 +294,7 @@ def prefetch_report_assets(player: Player, scores: Sequence[Score]) -> None:
     for score in scores:
         if isinstance(score, Score) and id(score) not in seen:
             seen.add(id(score))
-            futures.append(DOWNLOAD_POOL.submit(score.load_jacket_image))
+            futures.append(DOWNLOAD_POOL.submit(score.load_jacket_thumbnail, jacket_size))
     for future in futures:
         future.result()
 
@@ -325,8 +345,7 @@ def generate_b30_image(
     requests.packages.urllib3.disable_warnings()
     cleanup_old_images(output_dir)
     fetch_all_songs_data()
-    player = get_player_info(credential)
-    scores = get_player_scores(credential)
+    player, scores = _get_player_and_scores(credential, get_player_scores)
     if not player or not scores:
         return None
     total = sum(s.rating_floor for s in scores)
@@ -347,7 +366,7 @@ def create_push_score_image(
     player: Player, score: Score, save_path: Path,
     bg_image_path: Optional[Path] = None, title: str = "随机推分",
 ) -> Path:
-    prefetch_report_assets(player, [score])
+    prefetch_report_assets(player, [score], jacket_size=584)
     image = chu_theme.render_single_sheet(player, score, title)
     return chu_theme.save_report(image, save_path)
 
@@ -373,8 +392,7 @@ def generate_push_score_image(
     requests.packages.urllib3.disable_warnings()
     cleanup_old_images(output_dir)
     fetch_all_songs_data()
-    player = get_player_info(credential)
-    scores = get_all_player_scores(credential)
+    player, scores = _get_player_and_scores(credential, get_all_player_scores)
     if not player or not scores:
         return None
     score = random.choice(scores)
@@ -469,8 +487,7 @@ def generate_b50_image(
     requests.packages.urllib3.disable_warnings()
     cleanup_old_images(output_dir)
     fetch_all_songs_data()
-    player = get_player_info(credential)
-    bests = get_player_bests(credential)
+    player, bests = _get_player_and_scores(credential, get_player_bests)
     if not player or not bests:
         return None
     old = bests.get("bests", [])[:30]
@@ -542,8 +559,7 @@ def generate_chunithm_score_list_images(
     cleanup_old_images(output_dir)
     query = parse_level_query(query_text)
     fetch_all_songs_data()
-    player = get_player_info(credential)
-    scores = get_all_player_scores(credential)
+    player, scores = _get_player_and_scores(credential, get_all_player_scores)
     if not player or scores is None:
         return None
     matched = [score for score in scores if _chunithm_score_matches(score, query)]
@@ -572,8 +588,7 @@ def generate_fu_image(
     requests.packages.urllib3.disable_warnings()
     cleanup_old_images(output_dir)
     fetch_all_songs_data()
-    player = get_player_info(credential)
-    scores = get_all_player_scores(credential)
+    player, scores = _get_player_and_scores(credential, get_all_player_scores)
     if not player or not scores:
         return None
     above = [s for s in scores if s.rating_floor > player.rating_floor]
@@ -690,7 +705,7 @@ def create_chunithm_fitconst_image(
     ordered = _sorted_fit_entries(entries)
     if chu_theme.fit_sheet_height(len(ordered)) > FIT_MAX_HEIGHT:
         raise ValueError("范围内谱面太多，单张图片会超出安全尺寸，请缩小定数范围")
-    prefetch_report_assets(player, [entry.play for entry in ordered])
+    prefetch_report_assets(player, [entry.play for entry in ordered], jacket_size=188)
     image = chu_theme.render_fit_sheet(player, ordered, query.label)
     safe_user = "".join(c for c in str(user_id) if c.isalnum()) or "user"
     path = output_dir / f"chu_fitconst_{safe_user}_{time.time_ns()}.png"
@@ -704,8 +719,7 @@ def generate_chunithm_fitconst_image(
     cleanup_old_images(output_dir)
     if not fetch_all_songs_data():
         return None
-    player = get_player_info(credential)
-    scores = get_all_player_scores(credential)
+    player, scores = _get_player_and_scores(credential, get_all_player_scores)
     if player is None or scores is None:
         return None
     entries = build_fitconst_entries(list(ALL_SONGS_CACHE.values()), scores, query)

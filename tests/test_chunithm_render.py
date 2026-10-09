@@ -3,6 +3,7 @@ import hashlib
 import io
 import json
 import sys
+import threading
 import tempfile
 import unittest
 from pathlib import Path
@@ -86,6 +87,58 @@ class ChunithmRendererTests(unittest.TestCase):
         self.assertEqual([c.args for c in loader.call_args_list], [
             ("plate", 10131), ("icon", 19), ("character", 16620), ("trophy", 866),
         ])
+
+    def test_player_and_score_requests_run_concurrently_without_caching(self):
+        barrier = threading.Barrier(2)
+
+        def profile(credential):
+            barrier.wait(timeout=3)
+            return "profile"
+
+        def scores(credential):
+            barrier.wait(timeout=3)
+            return ["score"]
+
+        with patch.object(CORE, "get_player_info", side_effect=profile) as get_player:
+            for _ in range(2):
+                self.assertEqual(CORE._get_player_and_scores("Bearer test-token", scores), ("profile", ["score"]))
+        self.assertEqual(get_player.call_count, 2)
+
+    def test_production_jacket_drawing_uses_the_prepared_thumbnail(self):
+        image = Image.new("RGB", (200, 200))
+        score = SimpleNamespace(load_jacket_thumbnail=Mock(return_value=Image.new("RGBA", (170, 170), "red")),
+                                load_jacket_image=Mock(side_effect=AssertionError("Full original should not be loaded")))
+        CORE.chu_theme.draw_jacket(image, score, (10, 10, 170))
+        score.load_jacket_thumbnail.assert_called_once_with(170)
+        score.load_jacket_image.assert_not_called()
+
+    def test_card_textures_have_recorded_official_provenance(self):
+        theme = CORE.chu_theme
+        data = json.loads((theme.ASSETS / "mate/sources.json").read_text(encoding="utf-8"))
+        for record in data["card_ui"]["files"]:
+            path = theme.ASSETS / "mate/ui" / record["file"]
+            self.assertEqual(hashlib.sha256(path.read_bytes()).hexdigest(), record["sha256"])
+            self.assertTrue(record["source"].startswith("https://chunithm.sega.jp/"))
+
+    def test_card_surfaces_are_cached_and_fall_back_without_assets(self):
+        theme = CORE.chu_theme
+        first = theme.card_surface(565, 256, 3)
+        self.assertIs(first, theme.card_surface(565, 256, 3))
+        self.assertEqual(first.size, (565, 256))
+        self.assertEqual(first.getpixel((0, 0))[3], 0)
+        with patch.object(theme, "ui_art", return_value=None):
+            theme.card_surface.cache_clear()
+            self.assertEqual(theme.card_surface(565, 256, 3).size, (565, 256))
+        theme.card_surface.cache_clear()
+
+    def test_very_long_titles_use_logarithmic_width_probes(self):
+        theme = CORE.chu_theme
+        with patch.object(theme, "text_width", wraps=theme.text_width) as measure:
+            lines = theme.title_lines("非常长的曲名" * 250, theme.font(28, "song"), 340, max_lines=2)
+        self.assertLess(measure.call_count, 40)
+        self.assertTrue(lines[-1].endswith("..."))
+        for line in lines:
+            self.assertLessEqual(theme.text_width(line, theme.font(28, "song")), 340)
 
     def test_optional_collections_and_numeric_ids_are_supported(self):
         with patch.object(CORE.requests, "get") as get:
@@ -786,7 +839,75 @@ class ChunithmRendererTests(unittest.TestCase):
         image = Image.new("RGB", (theme.CARD_WIDTH + 20, theme.CARD_HEIGHT + 20), theme.PAPER)
         theme.draw_score_card(image, DummyScore(), 0, 0, 0)
         self.assertEqual(image.getpixel((theme.CARD_WIDTH + 3, 100)), theme.PAPER)
-        self.assertEqual(image.getpixel((250, 230)), theme.WHITE)
+        background = theme.jacket_card(DummyScore(), theme.SCORE_CARD_LAYOUT).convert("RGB")
+        self.assertEqual(image.getpixel((250, 230)), background.getpixel((250, 230)))
+        self.assertNotIn(image.getpixel((250, 230)), (theme.WHITE, theme.YELLOW))
+
+    def test_outlined_difficulty_marker_and_letters_have_identical_vertical_bounds(self):
+        theme = CORE.chu_theme
+        for level in theme.DIFFICULTIES:
+            for size in (23, 25, 35):
+                letters, marker, stroke = theme.difficulty_label_masks(level, size)
+                self.assertEqual(letters.getbbox()[1::2], marker.getbbox()[1::2])
+                sprite = theme.difficulty_label_sprite(level, size)
+                bounds = sprite.getchannel("A").getbbox()
+                self.assertEqual(bounds[1], letters.getbbox()[1] - stroke)
+                self.assertEqual(bounds[3], letters.getbbox()[3] + stroke)
+                colors = {color for _, color in sprite.getcolors(sprite.width * sprite.height)}
+                self.assertIn((*theme.DIFFICULTY_INK[level], 255), colors)
+                self.assertIn((255, 247, 230, 255), colors)
+        self.assertEqual(theme.DIFFICULTY_INK[4], (21, 20, 25))
+
+    def test_title_size_adapts_only_within_readable_bounds(self):
+        theme = CORE.chu_theme
+        lines, size = theme.adaptive_card_title("Forsaken Tale", 340)
+        self.assertEqual((lines, size), (("Forsaken Tale",), 38))
+        for title in ("Crossmythos Rhapsodia", "非常长的曲名" * 200, "", "祈 -我ら神祖と共に歩む者なり-"):
+            lines, size = theme.adaptive_card_title(title, 340)
+            self.assertLessEqual(len(lines), 2)
+            self.assertTrue(28 <= size <= 38)
+            self.assertTrue(all(theme.text_width(line, theme.font(size, "song")) <= 340 for line in lines))
+        lines, size = theme.adaptive_card_title("非常长的曲名" * 200, 340)
+        self.assertEqual(size, 28)
+        self.assertTrue(lines[-1].endswith("..."))
+
+    def test_new_cards_use_one_prepared_thumbnail_without_loading_original(self):
+        theme = CORE.chu_theme
+        score = DummyScore()
+        score.load_jacket_thumbnail = Mock(return_value=Image.new("RGBA", (170, 170), "red"))
+        score.load_jacket_image = Mock(side_effect=AssertionError("Unexpected full-size load"))
+        image = Image.new("RGB", (theme.CARD_WIDTH, theme.CARD_HEIGHT))
+        theme.draw_score_card(image, score, 0, 0, 0)
+        score.load_jacket_thumbnail.assert_called_once_with(170)
+        score.load_jacket_image.assert_not_called()
+
+    def test_cached_backgrounds_never_retain_a_players_score_text(self):
+        theme = CORE.chu_theme
+        score = DummyScore()
+        first = Image.new("RGB", (theme.CARD_WIDTH, theme.CARD_HEIGHT))
+        theme.draw_score_card(first, score, 0, 0, 0)
+        clean = theme.jacket_card(score, theme.SCORE_CARD_LAYOUT).tobytes()
+        score.score = 777777
+        second = Image.new("RGB", first.size)
+        theme.draw_score_card(second, score, 0, 0, 0)
+        self.assertNotEqual(first.tobytes(), second.tobytes())
+        self.assertEqual(clean, theme.jacket_card(score, theme.SCORE_CARD_LAYOUT).tobytes())
+
+    def test_missing_cover_uses_a_dark_local_background_without_crashing(self):
+        theme = CORE.chu_theme
+        score = DummyScore()
+        score.load_jacket_image = Mock(side_effect=OSError("missing image"))
+        image = Image.new("RGB", (theme.CARD_WIDTH + 8, theme.CARD_HEIGHT + 8), theme.PAPER)
+        theme.draw_score_card(image, score, 0, 0, 0)
+        self.assertLess(max(image.getpixel((400, 130))), 80)
+        self.assertEqual(image.getpixel((theme.CARD_WIDTH + 2, 100)), theme.PAPER)
+
+    def test_missing_rank_asset_uses_light_fallback_on_dark_cards(self):
+        theme = CORE.chu_theme
+        with patch.object(theme, "rank_sprite", return_value=None), \
+             patch.object(theme, "rank_text_sprite", wraps=theme.rank_text_sprite) as fallback:
+            theme.draw_score_card(Image.new("RGB", (565, 256)), DummyScore(), 0, 0, 0)
+        fallback.assert_any_call("SSS+", theme.RANK_HEIGHT, theme.CARD_INK)
 
     def test_fit_card_preserves_long_title_at_readable_size(self):
         theme = CORE.chu_theme

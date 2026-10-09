@@ -19,6 +19,11 @@ def _constant(name: str) -> str:
 
 
 class HelpVisibilityTests(unittest.TestCase):
+    def test_help_hides_temporarily_paused_score_commands(self):
+        for name in ("PUBLIC_HELP", "FULL_HELP"):
+            for command in ("推分", "装福"):
+                self.assertNotIn(command, _constant(name))
+
     def test_public_help_does_not_reveal_restricted_features(self):
         public_help = _constant("PUBLIC_HELP")
         restricted_terms = (

@@ -6,8 +6,9 @@ import math
 from pathlib import Path
 from typing import Sequence
 
-from PIL import Image, ImageChops, ImageDraw, ImageFont, ImageOps
+from PIL import Image, ImageChops, ImageDraw, ImageFilter, ImageFont, ImageOps
 
+from src.chunithm_card_art import CARD_ART_CACHE, CardLayout
 from src.image_credit import append_image_credit
 
 
@@ -63,6 +64,15 @@ SINGLE_WIDTH = 1800
 SINGLE_HEIGHT = 1120
 RANK_HEIGHT = 36
 SINGLE_RANK_HEIGHT = 76
+CARD_INK = (255, 252, 244)
+CARD_MUTED = (227, 229, 237)
+DIFFICULTY_INK = {
+    0: (40, 116, 57), 1: (143, 98, 8), 2: (179, 48, 73),
+    3: (137, 57, 170), 4: (21, 20, 25), 5: (32, 111, 139),
+}
+SCORE_CARD_LAYOUT = CardLayout(CARD_WIDTH, CARD_HEIGHT, CARD_JACKET_SIZE, CARD_JACKET_X, CARD_JACKET_Y)
+FIT_CARD_LAYOUT = CardLayout(FIT_CARD_WIDTH, FIT_CARD_HEIGHT, 188, 18, 22)
+SINGLE_CARD_LAYOUT = CardLayout(SINGLE_WIDTH - MARGIN * 2, 758, 584, 24, 31, 22)
 PROFILE_PLATE_WIDTH = 660
 PROFILE_PLATE_HEIGHT = round(PROFILE_PLATE_WIDTH * 228 / 576)
 PROFILE_TOP = 8
@@ -123,9 +133,14 @@ def ellipsis(value: str, face, width: int) -> str:
     value = " ".join(str(value).split())
     if text_width(value, face) <= width:
         return value
-    while value and text_width(value + "...", face) > width:
-        value = value[:-1]
-    return value.rstrip() + "..."
+    low, high = 0, len(value)
+    while low < high:
+        middle = (low + high + 1) // 2
+        if text_width(value[:middle] + "...", face) <= width:
+            low = middle
+        else:
+            high = middle - 1
+    return value[:low].rstrip() + "..."
 
 
 def title_lines(value: str, face, width: int, max_lines: int = 3) -> list[str]:
@@ -139,9 +154,14 @@ def title_lines(value: str, face, width: int, max_lines: int = 3) -> list[str]:
         if text_width(remaining, face) <= width:
             lines.append(remaining)
             break
-        stop = 1
-        while stop < len(remaining) and text_width(remaining[:stop + 1], face) <= width:
-            stop += 1
+        low, high = 1, len(remaining)
+        while low < high:
+            middle = (low + high + 1) // 2
+            if text_width(remaining[:middle], face) <= width:
+                low = middle
+            else:
+                high = middle - 1
+        stop = low
         word = remaining.rfind(" ", 0, stop + 1)
         if word >= stop // 2 and word > 0:
             stop = word
@@ -153,6 +173,33 @@ def title_lines(value: str, face, width: int, max_lines: int = 3) -> list[str]:
 @lru_cache(maxsize=512)
 def card_title(value: str, width: int, size: int) -> tuple:
     return tuple(title_lines(value, font(size, "song"), width, max_lines=2))
+
+
+@lru_cache(maxsize=512)
+def adaptive_card_title(value, width, min_size=28, max_size=38, max_lines=2):
+    value = " ".join(str(value).split())
+    if text_width(value, font(min_size, "song")) > width:
+        return tuple(title_lines(value, font(min_size, "song"), width, max_lines)), min_size
+    low, high = min_size, max_size
+    while low < high:
+        middle = (low + high + 1) // 2
+        if text_width(value, font(middle, "song")) <= width:
+            low = middle
+        else:
+            high = middle - 1
+    return (value,), low
+
+
+def draw_adaptive_title(draw, value, box, *, min_size=28, max_size=38, max_lines=2):
+    x, y, width, height = box
+    lines, size = adaptive_card_title(value, width, min_size, max_size, max_lines)
+    face = font(size, "song")
+    bounds = face.getbbox(lines[-1] or " ")
+    line_step = size + 5
+    ink_height = (len(lines) - 1) * line_step + bounds[3] - bounds[1]
+    top = y + max(0, (height - ink_height) // 2)
+    for row, line in enumerate(lines):
+        text(draw, (x, top + row * line_step), line, size, kind="song", fill=CARD_INK)
 
 
 def text(draw, xy, value, size, *, kind="ui", fill=INK, anchor="lt"):
@@ -187,6 +234,62 @@ def canvas(width: int, height: int, *, header_height=HEADER_HEIGHT) -> Image.Ima
 
 def panel(draw, box, *, fill=WHITE, outline=BORDER, radius=16):
     draw.rounded_rectangle(box, radius=radius, fill=fill, outline=outline, width=1)
+
+
+@lru_cache(maxsize=4)
+def ui_art(name):
+    try:
+        with Image.open(ASSETS / "mate" / "ui" / name) as source:
+            return source.convert("RGBA")
+    except (OSError, ValueError):
+        return None
+
+
+@lru_cache(maxsize=16)
+def card_surface(width, height, level):
+    """A quiet MATE paper panel; official accents never sit behind score digits."""
+    card = Image.new("RGBA", (width, height), (*WHITE, 255))
+    color = DIFFICULTIES.get(level, DIFFICULTIES[3])[1]
+    draw = ImageDraw.Draw(card)
+    for y in range(52):
+        blend = .065 * (1-y/52)
+        fill = tuple(round(WHITE[i]*(1-blend) + color[i]*blend) for i in range(3))
+        draw.line((0, y, width-1, y), fill=(*fill, 255))
+    accents = ui_art("accents.webp")
+    if accents is not None:
+        accent = ImageOps.contain(accents, (130, 80), method=LANCZOS)
+        accent.putalpha(accent.getchannel("A").point(lambda a: round(a*.20)))
+        card.alpha_composite(accent, (width-accent.width-12, -22))
+    dots = ui_art("dots.png")
+    if dots is not None:
+        dots = ImageOps.fit(dots, (150, 48), method=LANCZOS)
+        dots.putalpha(dots.getchannel("A").point(lambda a: round(a*.45)))
+        card.alpha_composite(dots, (width-166, 0))
+    mask = Image.new("L", card.size)
+    ImageDraw.Draw(mask).rounded_rectangle((0, 0, width-1, height-1), radius=16, fill=255)
+    card.putalpha(mask)
+    return card
+
+
+def paste_card(image, x, y, width, height, level):
+    sprite = card_surface(width, height, level)
+    image.paste(sprite, (x, y), sprite)
+
+
+@lru_cache(maxsize=32)
+def section_tab(value, accent):
+    width = math.ceil(text_width(value, font(38, "display"))) + 62
+    sprite = Image.new("RGBA", (width, 58))
+    draw = ImageDraw.Draw(sprite)
+    draw.rounded_rectangle((0, 0, width-1, 57), radius=21, fill=(255, 252, 229, 255))
+    draw.ellipse((15, 24, 24, 33), fill=accent)
+    text(draw, (35, 10), value, 38, kind="display")
+    return sprite
+
+
+def draw_section_tab(image, xy, value, accent=INK):
+    sprite = section_tab(value, accent)
+    image.paste(sprite, xy, sprite)
 
 
 @lru_cache(maxsize=1)
@@ -531,6 +634,45 @@ def difficulty(draw, xy, level: int, *, size=28):
     return width
 
 
+@lru_cache(maxsize=24)
+def difficulty_label_masks(level, size=23):
+    label, _ = DIFFICULTIES.get(level, DIFFICULTIES[3])
+    face = font(size)
+    bounds = face.getbbox(label, anchor="lt")
+    stroke = max(1, round(size / 23))
+    width = math.ceil(text_width(label, face)) + 15 + stroke * 2
+    height = max(1, bounds[3]) + stroke * 2
+    letters = Image.new("L", (width, height))
+    ImageDraw.Draw(letters).text((stroke + 15, stroke), label, font=face, anchor="lt", fill=255)
+    _, top, _, bottom = letters.getbbox()
+    marker = Image.new("L", letters.size)
+    ImageDraw.Draw(marker).rounded_rectangle((stroke, top, stroke + 4, bottom - 1), radius=2, fill=255)
+    return letters, marker, stroke
+
+
+@lru_cache(maxsize=24)
+def difficulty_label_sprite(level, size=23):
+    letters, marker, stroke = difficulty_label_masks(level, size)
+    mask = ImageChops.lighter(letters, marker)
+    sprite = Image.new("RGBA", mask.size, (255, 247, 230, 255))
+    sprite.putalpha(mask.filter(ImageFilter.MaxFilter(stroke * 2 + 1)))
+    ink = Image.new("RGBA", mask.size, (*DIFFICULTY_INK.get(level, DIFFICULTY_INK[3]), 255))
+    ink.putalpha(mask)
+    sprite.alpha_composite(ink)
+    return sprite
+
+
+def draw_difficulty_label(image, xy, level, *, size=23):
+    sprite = difficulty_label_sprite(level, size)
+    stroke = max(1, round(size / 23))
+    pos = (xy[0] - stroke, xy[1] - stroke)
+    if image.mode == "RGBA":
+        image.alpha_composite(sprite, pos)
+    else:
+        image.paste(sprite, pos, sprite)
+    return sprite.width - stroke * 2
+
+
 def normalize_rank(rank):
     value = str(rank).strip().upper()
     return {"SP": "S+", "SSP": "SS+", "SSSP": "SSS+"}.get(value, value)
@@ -562,12 +704,12 @@ def rank_sprite(rank, size=RANK_HEIGHT):
 
 
 @lru_cache(maxsize=64)
-def rank_text_sprite(rank, size=RANK_HEIGHT):
+def rank_text_sprite(rank, size=RANK_HEIGHT, fill=INK):
     value = normalize_rank(rank) or "?"
     face = font(size, "number")
     left, top, right, bottom = face.getbbox(value)
     sprite = Image.new("RGBA", (max(1, right - left), max(1, bottom - top)))
-    ImageDraw.Draw(sprite).text((-left, -top), value, font=face, fill=INK)
+    ImageDraw.Draw(sprite).text((-left, -top), value, font=face, fill=fill)
     bounds = sprite.getchannel("A").getbbox()
     return _scale_rank(sprite.crop(bounds) if bounds else sprite, size)
 
@@ -577,13 +719,13 @@ def rank_width(rank, size=RANK_HEIGHT):
     return (sprite if sprite is not None else rank_text_sprite(rank, size)).width
 
 
-def draw_rank(image, right, top, rank, *, size=RANK_HEIGHT):
+def draw_rank(image, right, top, rank, *, size=RANK_HEIGHT, fallback_fill=INK):
     rank = normalize_rank(rank)
     width = rank_width(rank, size)
     left = right - width
     sprite = rank_sprite(rank, size)
     if sprite is None:
-        sprite = rank_text_sprite(rank, size)
+        sprite = rank_text_sprite(rank, size, fallback_fill)
     position = (int(left), int(top))
     if image.mode == "RGBA":
         image.alpha_composite(sprite, position)
@@ -594,36 +736,66 @@ def draw_rank(image, right, top, rank, *, size=RANK_HEIGHT):
 
 def draw_jacket(image, score, box):
     x, y, size = box
-    jacket = ImageOps.fit(score.load_jacket_image().convert("RGBA"), (size, size), method=LANCZOS)
+    thumbnail = getattr(score, "load_jacket_thumbnail", None)
+    if callable(thumbnail):
+        jacket = thumbnail(size)
+    else:
+        jacket = ImageOps.fit(score.load_jacket_image().convert("RGBA"), (size, size), method=LANCZOS)
     image.paste(jacket, (x, y), jacket)
 
 
-def draw_arrow(draw, x, y, length=48):
-    draw.line((x, y, x + length, y), fill=MUTED, width=2)
-    draw.line((x + length - 9, y - 7, x + length, y, x + length - 9, y + 7),
-              fill=MUTED, width=2)
+def jacket_card(score, layout):
+    thumbnail = getattr(score, "load_jacket_thumbnail", None)
+    try:
+        if callable(thumbnail):
+            jacket = thumbnail(layout.jacket_size)
+        else:
+            jacket = score.load_jacket_image()
+        if jacket is None:
+            raise ValueError("Missing jacket")
+        return CARD_ART_CACHE.get(jacket, layout)
+    except (OSError, ValueError, Image.DecompressionBombError):
+        return CARD_ART_CACHE.get(Image.new("RGBA", (layout.jacket_size,) * 2, (28, 31, 48, 255)), layout)
+
+
+def paste_jacket_card(image, card, x, y):
+    if image.mode == "RGBA":
+        image.alpha_composite(card, (x, y))
+    else:
+        image.paste(card, (x, y), card)
+
+
+def draw_arrow(draw, x, y, length=48, *, fill=MUTED):
+    draw.line((x, y, x + length, y), fill=fill, width=2)
+    draw.line((x + length - 9, y - 7, x + length, y, x + length - 9, y + 7), fill=fill, width=2)
+
+
+def card_separator(card, start, end):
+    layer = Image.new("RGBA", card.size)
+    ImageDraw.Draw(layer).line((*start, *end), fill=(255, 252, 242, 65), width=1)
+    card.alpha_composite(layer)
 
 
 def draw_score_card(image, score, x, y, index):
-    draw = ImageDraw.Draw(image)
-    right = x + CARD_WIDTH
-    panel(draw, (x, y, right, y + CARD_HEIGHT))
-    draw_jacket(image, score, (x + CARD_JACKET_X, y + CARD_JACKET_Y, CARD_JACKET_SIZE))
-    tx = x + 207
-    difficulty(draw, (tx, y + 16), score.level_index, size=23)
-    for i, line in enumerate(card_title(score.song_name, right - tx - 18, 28)):
-        text(draw, (tx, y + 65 + i * 33), line, 28, kind="song")
-    draw_rank(image, right - 18, y + 156, score.rank)
+    card = jacket_card(score, SCORE_CARD_LAYOUT)
+    draw = ImageDraw.Draw(card)
+    right, tx = CARD_WIDTH, 207
+    text(draw, (20, 12), f"{index+1:02d}", 23, kind="number", fill=CARD_INK)
+    draw_difficulty_label(card, (tx, 18), score.level_index)
+    draw_adaptive_title(draw, score.song_name, (tx, 65, right - tx - 18, 72))
+    draw_rank(card, right - 18, 156, score.rank, fallback_fill=CARD_INK)
     number = f"{score.score:,}"
     size = 54
     # Reserve the widest rank so the score's type size doesn't change by grade.
     number_width = right - 18 - max(rank_width(r) for r in RANK_ASSETS) - tx - 12
     while size > 36 and text_width(number, font(size, "number")) > number_width:
         size -= 1
-    text(draw, (tx, y + 155), number, size, kind="number")
-    text(draw, (x + 20, y + 222), str(score.final_level), 32, kind="number", fill=MUTED)
-    text(draw, (right - 18, y + 221), f"R {score.rating_floor:.2f}", 33,
-         kind="number", anchor="rt")
+    text(draw, (tx, 155), number, size, kind="number", fill=CARD_INK)
+    card_separator(card, (tx, 210), (right - 18, 210))
+    text(draw, (20, 222), str(score.final_level), 32, kind="number", fill=CARD_MUTED)
+    text(draw, (right - 23, 218), f"R {score.rating_floor:.2f}", 33,
+         kind="number", fill=CARD_INK, anchor="rt")
+    paste_jacket_card(image, card, x, y)
 
 
 @dataclass(frozen=True)
@@ -655,8 +827,7 @@ def render_score_sheet(player, sections: Sequence[ScoreSection], title: str,
     for section in sections:
         heading = SECTION_HEIGHT if section.title else 0
         if section.title:
-            draw.rounded_rectangle((MARGIN, y + 6, MARGIN + 10, y + 54), radius=4, fill=section.accent)
-            text(draw, (MARGIN + 28, y + 9), section.title, 46, kind="display")
+            draw_section_tab(image, (MARGIN, y + 4), section.title, section.accent)
         for i, score in enumerate(section.scores):
             row, col = divmod(i, COLUMNS)
             draw_score_card(image, score, MARGIN + col * (CARD_WIDTH + GAP),
@@ -668,23 +839,20 @@ def render_score_sheet(player, sections: Sequence[ScoreSection], title: str,
 
 
 def draw_fit_card(image, entry, x, y):
-    draw = ImageDraw.Draw(image)
-    right = x + FIT_CARD_WIDTH
-    panel(draw, (x, y, right, y + FIT_CARD_HEIGHT))
-    draw_jacket(image, entry.play, (x + 18, y + 22, 188))
-    tx = x + 228
-    for i, line in enumerate(card_title(entry.title, FIT_CARD_WIDTH - 252, 34)):
-        text(draw, (tx, y + 22 + i * 39), line, 34, kind="song")
-    difficulty(draw, (tx, y + 108), entry.difficulty, size=25)
-    draw.line((tx, y + 148, right - 24, y + 148), fill=BORDER, width=1)
+    card = jacket_card(entry.play, FIT_CARD_LAYOUT)
+    draw = ImageDraw.Draw(card)
+    right, tx = FIT_CARD_WIDTH, 228
+    draw_adaptive_title(draw, entry.title, (tx, 22, FIT_CARD_WIDTH - 252, 78), min_size=34, max_size=44)
+    draw_difficulty_label(card, (tx, 110), entry.difficulty, size=25)
+    card_separator(card, (tx, 148), (right - 24, 148))
     number = f"{entry.play.score:,}"
-    text(draw, (tx + 2, y + 172), number, 45, kind="number")
+    text(draw, (tx + 2, 172), number, 45, kind="number", fill=CARD_INK)
     grade_left = tx + math.ceil(text_width(number, font(45, "number"))) + 18
-    draw_rank(image, grade_left + rank_width(entry.play.rank), y + 171,
-              entry.play.rank)
-    text(draw, (right - 280, y + 177), f"{entry.constant:.1f}", 38, kind="number", fill=MUTED)
-    draw_arrow(draw, right - 201, y + 196, length=30)
-    text(draw, (right - 25, y + 160), f"{entry.fitted:.2f}", 64, kind="number", anchor="rt")
+    draw_rank(card, grade_left + rank_width(entry.play.rank), 171, entry.play.rank, fallback_fill=CARD_INK)
+    text(draw, (right - 280, 177), f"{entry.constant:.1f}", 38, kind="number", fill=CARD_MUTED)
+    draw_arrow(draw, right - 201, 196, length=30, fill=CARD_MUTED)
+    text(draw, (right - 25, 160), f"{entry.fitted:.2f}", 64, kind="number", fill=CARD_INK, anchor="rt")
+    paste_jacket_card(image, card, x, y)
 
 
 def fit_sheet_height(count: int) -> int:
@@ -697,7 +865,7 @@ def render_fit_sheet(player, entries: Sequence, label: str) -> Image.Image:
     draw_header(image, player, "FIT CONSTANT", label=label)
     draw = ImageDraw.Draw(image)
     sssp = sum(e.play.rank == "SSS+" for e in entries)
-    text(draw, (MARGIN, HEADER_HEIGHT + 25), f"{len(entries)} CHARTS   /   SSS+ {sssp}", 38)
+    draw_section_tab(image, (MARGIN, HEADER_HEIGHT + 12), f"{len(entries)} CHARTS   /   SSS+ {sssp}")
     for i, entry in enumerate(entries):
         row, col = divmod(i, FIT_COLUMNS)
         draw_fit_card(image, entry, MARGIN + col * (FIT_CARD_WIDTH + GAP),
@@ -710,22 +878,21 @@ def render_fit_sheet(player, entries: Sequence, label: str) -> Image.Image:
 def render_single_sheet(player, score, title: str) -> Image.Image:
     image = canvas(SINGLE_WIDTH, SINGLE_HEIGHT)
     draw_header(image, player, title)
-    draw = ImageDraw.Draw(image)
-    right = SINGLE_WIDTH - MARGIN
-    panel(draw, (MARGIN, 314, right, 1072), radius=22)
-    draw_jacket(image, score, (MARGIN + 24, 345, 584))
-    tx = 714
-    for i, line in enumerate(title_lines(score.song_name, font(49, "song"), right - tx - 32)):
-        text(draw, (tx, 347 + i * 58), line, 49, kind="song")
-    badge = difficulty(draw, (tx, 558), score.level_index, size=35)
-    text(draw, (tx + badge + 28, 559), str(score.final_level), 43, kind="number")
-    text(draw, (tx, 673), f"{score.score:,}", 142, kind="number")
+    card = jacket_card(score, SINGLE_CARD_LAYOUT)
+    draw = ImageDraw.Draw(card)
+    right, tx = card.width, 714 - MARGIN
+    draw_adaptive_title(draw, score.song_name, (tx, 33, right - tx - 32, 186),
+                        min_size=49, max_size=58, max_lines=3)
+    badge = draw_difficulty_label(card, (tx, 246), score.level_index, size=35)
+    text(draw, (tx + badge + 28, 245), str(score.final_level), 43, kind="number", fill=CARD_INK)
+    text(draw, (tx, 359), f"{score.score:,}", 142, kind="number", fill=CARD_INK)
     score_end = tx + text_width(f"{score.score:,}", font(142, "number"))
-    draw_rank(image, min(right - 32, score_end + 44 + rank_width(score.rank, SINGLE_RANK_HEIGHT)),
-              687, score.rank, size=SINGLE_RANK_HEIGHT)
-    draw.line((MARGIN + 26, 966, right - 30, 966), fill=BORDER, width=1)
-    text(draw, (MARGIN + 26, 995), "RATING", 43, fill=MUTED)
-    text(draw, (right - 30, 983), f"{score.rating_floor:.2f}", 78, kind="number", anchor="rt")
+    draw_rank(card, min(right - 32, score_end + 44 + rank_width(score.rank, SINGLE_RANK_HEIGHT)),
+              373, score.rank, size=SINGLE_RANK_HEIGHT, fallback_fill=CARD_INK)
+    card_separator(card, (26, 652), (right - 30, 652))
+    text(draw, (26, 681), "RATING", 43, fill=CARD_MUTED)
+    text(draw, (right - 30, 669), f"{score.rating_floor:.2f}", 78, kind="number", fill=CARD_INK, anchor="rt")
+    paste_jacket_card(image, card, MARGIN, 314)
     return image
 
 

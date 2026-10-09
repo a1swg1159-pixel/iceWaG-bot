@@ -155,5 +155,17 @@
     ],
     "note": "Unmodified source WebP files are bundled. The B30/B50 header crops upper-body portraits at render time onto a softly faded official-theme background. Composition is confined between the player panel and enlarged 550x250 MATE logo, within a 270px header. No extra header/content gap; visible profile art is bottom-aligned with the content boundary. Other report types keep their existing header layout. Missing files fall back without network requests."
   },
+  "card_ui": {
+    "directory": "ui",
+    "retrieved_on": "2026-10-09",
+    "reference_page": "https://chunithm.sega.jp/",
+    "reference_css": "https://chunithm.sega.jp/$site/components.css",
+    "copyright": "SEGA. Official website decoration; original binaries retained.",
+    "note": "Very lightly composited into cached, locally drawn card surfaces. Rounded section tabs, difficulty wash and rating chips are original layout components inspired by MATE, not extracted arcade frames. No runtime network access for these assets.",
+    "files": [
+      {"file": "dots.png", "source": "https://chunithm.sega.jp/$site/images/dots_gradation.png", "sha256": "815a0fae9918d3abf9c02a16114572f526d5963d9aeb5fc7dc10cd406e240482"},
+      {"file": "accents.webp", "source": "https://chunithm.sega.jp/$site/components/chuniMainBg/mate_flot-1.png.webp", "sha256": "38c88947cf811fd9f482e7ec2e7ead0a9c3f6a19c12cc3f58e86643e90591eda"}
+    ]
+  },
   "layout": "Original locally drawn score-report layout with bundled MATE assets. Report-title slogans are omitted; equipped collections and the player's rating occupy an arcade-style top-left panel, with only the MATE logo on the right. No online image-generation dependency."
 }

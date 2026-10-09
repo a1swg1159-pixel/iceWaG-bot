@@ -1,6 +1,7 @@
 """Bounded, persistent cache for public CHUNITHM artwork (never player data)."""
 
 from concurrent.futures import Future, ThreadPoolExecutor
+from collections import OrderedDict
 import io
 import os
 from pathlib import Path
@@ -9,7 +10,7 @@ import tempfile
 import threading
 import time
 
-from PIL import Image
+from PIL import Image, ImageOps
 import requests
 
 
@@ -20,6 +21,7 @@ ASSETS_BASE_URLS = [
 ]
 CACHE_ROOT = Path(__file__).resolve().parents[1] / "data" / "b30_asset_cache"
 MAX_CACHE_BYTES = 512 * 1024 * 1024
+MAX_MEMORY_BYTES = 64 * 1024 * 1024
 MAX_IDLE_SECONDS = 30 * 86400
 FAILURE_TTL_SECONDS = 300
 CLEANUP_INTERVAL_SECONDS = 3600
@@ -32,6 +34,42 @@ _TEMP_NAME = re.compile(r"\.download-[a-z0-9_]+\.tmp\Z")
 DOWNLOAD_POOL = ThreadPoolExecutor(max_workers=DOWNLOAD_WORKERS, thread_name_prefix="chu-assets")
 
 
+class _ImageLRU:
+    """Byte-bounded decoded images; guarded by the owning ArtworkCache lock."""
+
+    def __init__(self, budget):
+        self.budget = budget
+        self.bytes = 0
+        self.items = OrderedDict()
+
+    def discard(self, key):
+        record = self.items.pop(key, None)
+        if record is not None:
+            self.bytes -= record[0].width * record[0].height * 4
+
+    def get(self, key, now, max_idle):
+        record = self.items.get(key)
+        if record is None:
+            return None
+        image, used = record
+        if now - used >= max_idle:
+            self.discard(key)
+            return None
+        self.items[key] = (image, now)
+        self.items.move_to_end(key)
+        return image.copy()
+
+    def put(self, key, image, now):
+        size = image.width * image.height * 4
+        if size > self.budget:
+            return
+        self.discard(key)
+        while self.items and self.bytes + size > self.budget:
+            self.discard(next(iter(self.items)))
+        self.items[key] = (image.copy(), now)
+        self.bytes += size
+
+
 class ArtworkCache:
     """Last-use mtime eviction; writes are atomic, misses expire, loads coalesce.
 
@@ -42,7 +80,7 @@ class ArtworkCache:
 
     def __init__(self, root=CACHE_ROOT, *, max_bytes=MAX_CACHE_BYTES,
                  max_idle=MAX_IDLE_SECONDS, failure_ttl=FAILURE_TTL_SECONDS,
-                 clock=None):
+                 clock=None, memory_bytes=MAX_MEMORY_BYTES):
         self.root = Path(root).absolute()
         self.max_bytes = max_bytes
         self.max_idle = max_idle
@@ -54,6 +92,10 @@ class ArtworkCache:
         self._failures = {}
         self._bytes = 0
         self._last_cleanup = float("-inf")
+        # Separate budgets prevent large originals from evicting every small
+        # card thumbnail during a long report. Neither cache contains scores.
+        self._decoded = _ImageLRU(memory_bytes // 2)
+        self._thumbnails = _ImageLRU(memory_bytes // 2)
 
     def _safe_root(self):
         return not (self.root.is_symlink() or
@@ -81,6 +123,12 @@ class ArtworkCache:
                 size = path.stat().st_size
                 path.unlink()
                 self._bytes = max(0, self._bytes - size)
+                kind, asset_id = path.stem.split("_", 1)
+                identity = (kind, int(asset_id))
+                self._decoded.discard(identity)
+                for key in list(self._thumbnails.items):
+                    if key[:2] == identity:
+                        self._thumbnails.discard(key)
         except OSError:
             pass
 
@@ -96,6 +144,10 @@ class ArtworkCache:
                 and self._bytes <= self.max_bytes):
             return
         self._last_cleanup = now
+        for memory in (self._decoded, self._thumbnails):
+            for key, (_, used) in list(memory.items.items()):
+                if now - used >= self.max_idle:
+                    memory.discard(key)
         if not self._safe_root():
             return
         try:
@@ -122,21 +174,29 @@ class ArtworkCache:
 
     def _read(self, path, now):
         try:
-            if not self._regular_file(path):
-                return None
-            stat = path.stat()
-            if now - stat.st_mtime >= self.max_idle or stat.st_size > MAX_ASSET_BYTES:
-                self._discard(path)
-                return None
-            image = self._decode(path.read_bytes())
+            with self._lock:
+                if not self._regular_file(path):
+                    return None
+                stat = path.stat()
+                if now - stat.st_mtime >= self.max_idle or stat.st_size > MAX_ASSET_BYTES:
+                    self._discard(path)
+                    return None
+                payload = path.read_bytes()
+                self._touch(path, now)
+            # Decompression is CPU work, not cache bookkeeping: different
+            # artwork can decode concurrently instead of holding one global lock.
+            return self._decode(payload)
         except (OSError, ValueError, Image.DecompressionBombError):
-            self._discard(path)
+            with self._lock:
+                self._discard(path)
             return None
+
+    def _touch(self, path, now):
         try:
-            os.utime(path, (now, now))
+            if self._regular_file(path):
+                os.utime(path, (now, now))
         except OSError:
             pass  # A read-only cache can still supply useful artwork.
-        return image
 
     def _store(self, path, payload, now):
         if len(payload) > self.max_bytes or not self._safe_root() or path.is_symlink():
@@ -198,8 +258,9 @@ class ArtworkCache:
         with self._lock:
             now = self._clock()
             self._cleanup_locked(now)
-            image = self._read(path, now)
+            image = self._decoded.get(key, now, self.max_idle) if self._safe_root() else None
             if image is not None:
+                self._touch(path, now)
                 return image
             if self._failures.get(key, 0) > now:
                 return None
@@ -211,11 +272,17 @@ class ArtworkCache:
             image = future.result()
             return image.copy() if image is not None else None
         try:
-            image, payload = self._download(kind, asset_id, timeout)
+            image = self._read(path, now)
+            payload = None
+            if image is None:
+                image, payload = self._download(kind, asset_id, timeout)
             with self._lock:
                 now = self._clock()
                 if image is not None:
-                    self._store(path, payload, now)
+                    if payload is not None:
+                        self._store(path, payload, now)
+                    if self._safe_root():
+                        self._decoded.put(key, image, now)
                     self._failures.pop(key, None)
                 else:
                     if len(self._failures) >= 2048:
@@ -229,6 +296,28 @@ class ArtworkCache:
         finally:
             with self._lock:
                 self._inflight.pop(key, None)
+
+    def thumbnail(self, kind, asset_id, size):
+        """Full-quality LANCZOS square, cached separately from full-size art."""
+        if (kind not in _KINDS or type(asset_id) is not int or not 0 <= asset_id <= 10**10
+                or type(size) is not int or not 1 <= size <= 2048):
+            return None
+        key = (kind, asset_id, size)
+        with self._lock:
+            now = self._clock()
+            self._cleanup_locked(now)
+            image = self._thumbnails.get(key, now, self.max_idle) if self._safe_root() else None
+            if image is not None:
+                self._touch(self.root / f"{kind}_{asset_id}.img", now)
+                return image
+        original = self.get(kind, asset_id)
+        if original is None:
+            return None  # Do not retain a placeholder as a successful thumbnail.
+        image = ImageOps.fit(original, (size, size), method=getattr(Image, "Resampling", Image).LANCZOS)
+        with self._lock:
+            if self._safe_root():
+                self._thumbnails.put(key, image, self._clock())
+        return image
 
 
 ARTWORK_CACHE = ArtworkCache()

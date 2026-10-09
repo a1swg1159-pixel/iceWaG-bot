@@ -24,6 +24,8 @@ from .oauth import (
 
 DATA_DIR = Path("data")
 OUTPUT_DIR = DATA_DIR / "b30_outputs"
+# Temporary pause only: keep both handlers and renderers available for reuse.
+PAUSED_COMMANDS = frozenset({"装福", "推分"})
 
 
 def _config_value(name: str) -> str:
@@ -58,9 +60,9 @@ chu_cmd = on_command(
 
 @chu_cmd.handle()
 async def handle_chu(event: MessageEvent, args=CommandArg()):
-    await random_delay()
     raw = args.extract_plain_text().strip()
     if not raw:
+        await random_delay()
         await chu_cmd.finish(
             MessageSegment.at(event.get_user_id())
             + "\n中二节奏指令...自己看喵。\n"
@@ -71,8 +73,6 @@ async def handle_chu(event: MessageEvent, args=CommandArg()):
             "/chu b50 - 生成 B50 图片\n"
             "/chu score <任意等级或定数> - 生成该档成绩列表\n"
             "/chu fitconst <定数范围> - 生成个人拟合定数表\n"
-            "/chu 推分 - 随机抽一首歌\n"
-            "/chu 装福 - 随机抽一首上分曲\n"
             "——————————————\n"
             "💡 成绩查询仅支持 OAuth，请在私聊中完成授权。"
         )
@@ -82,6 +82,15 @@ async def handle_chu(event: MessageEvent, args=CommandArg()):
     sub_args = parts[1] if len(parts) > 1 else ""
 
     user_id = event.get_user_id()
+    if sub in PAUSED_COMMANDS:
+        await chu_cmd.finish(
+            MessageSegment.at(user_id) + "\n这个功能暂时停用了喵。"
+        )
+        return  # Also safe with adapters/test doubles whose finish returns.
+
+    if sub not in {"b30", "b50", "score", "fitconst"}:
+        await random_delay()
+
     if sub == "bind":
         if event.message_type != "private":
             await chu_cmd.finish(
