@@ -1,0 +1,13 @@
+{
+  "game": "TAKUMI³ / Thiqxis・StrayCubic",
+  "official_reference": "https://takumi3.straycubic.com/",
+  "retrieved": "2026-10-11",
+  "assets": {
+    "logo.png": "https://takumi3.straycubic.com/featured_images/logo/TitleLogo.png",
+    "scifi_bg.png": "https://takumi3.straycubic.com/featured_images/back/Scifi%20BG01.png",
+    "ras.png": "https://takumi3.straycubic.com/characters/DefoRas.png"
+  },
+  "rights": "Game artwork belongs to its respective copyright holders. Public availability does not grant a new license.",
+  "design": "User-approved offline proposal migrated to production. RA-S is decorative official artwork, not a claimed equipped character. Player collections are supplied by the account fetcher.",
+  "layout": {"width": 3000, "card": [555, 228], "columns": 5, "const_card": [350, 120], "const_columns": 8, "const_pagination": false}
+}

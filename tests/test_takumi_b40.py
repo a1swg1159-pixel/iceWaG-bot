@@ -328,12 +328,21 @@ class TakumiRendererTests(unittest.TestCase):
             self.assertEqual(len(paths), 1)
             with Image.open(paths[0]) as image:
                 self.assertEqual(image.width, 3000)
-                self.assertGreater(image.height, 3000)
+                self.assertGreater(image.height, 1500)
+                self.assertLess(image.height, 3000)
+                long_height = image.height
+            short_paths = CORE.render_const_list_images(
+                entries[:10], CORE.ConstQuery(140, 149), "测试玩家",
+                Path(directory), "123",
+            )
+            with Image.open(short_paths[0]) as image:
+                self.assertEqual(image.width, 3000)
+                self.assertLess(image.height, long_height)
 
     def test_const_oversized_range_asks_for_narrower_query(self):
         entries = [
             CORE.ConstEntry(index, f"Song {index}", "MASTER", 14.2)
-            for index in range(650)
+            for index in range(1200)
         ]
         with tempfile.TemporaryDirectory() as directory:
             with self.assertRaises(CORE.TakumiChartDataError):
@@ -386,7 +395,8 @@ class TakumiRendererTests(unittest.TestCase):
             path = render_b40_image(result, "测试玩家 TAKUMI", Path(directory), "123")
             self.assertTrue(path.exists())
             with Image.open(path) as image:
-                self.assertEqual(image.size, (3000, 2556))
+                # Eight card rows, a 40 px bottom margin and the 56 px credit.
+                self.assertEqual(image.size, (3000, 2406))
                 self.assertEqual(image.mode, "RGB")
 
     def test_score_list_supports_display_level_and_exact_constant(self):

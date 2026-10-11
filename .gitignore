@@ -38,3 +38,7 @@ data/quiz.json
 data/uno_games.json
 data/takumi_bindings.json
 data/takumi_song_catalog.json
+data/takumi_achievements.json
+data/takumi_achievements.json.tmp
+tmp/takumi_collections/
+tmp/takumi_asset_deps/

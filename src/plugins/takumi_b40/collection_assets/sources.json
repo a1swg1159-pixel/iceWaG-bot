@@ -1,0 +1,21 @@
+{
+  "game": "TAKUMI³ / Thiqxis・StrayCubic",
+  "official_site": "https://takumi3.straycubic.com/",
+  "titles": {
+    "url": "https://docs.google.com/spreadsheets/d/1cYF7RUax3XuRSgufHG02Fy-GgYzYWjAv/gviz/tq?tqx=out:csv&sheet=AchieveInfoAll",
+    "retrieved": "2026-10-11",
+    "fields": ["称号ID", "称号表示名", "ランク"]
+  },
+  "art": {
+    "bundle": "com.thiqxis.takumicubic 7.0.2 / assets/bin/Data/data.unity3d",
+    "download_page": "https://apk.house/download?split=470926/3411795/xn--takumi3--uv4gtabz1p7b5n2gzd5527t",
+    "signature_verified": false,
+    "note": "Public mirror; extracted as data only, never installed or executed. Exact sprite mappings in extraction.json. Game artwork belongs to its respective rights holders.",
+    "coverage": "DAN 1–4 icons, seven static achievement plates. New/unmapped icons are omitted."
+  },
+  "font": {
+    "name": "Audiowide",
+    "license": "fonts/OFL-Audiowide.txt",
+    "note": "Open-source companion typeface, not claimed to be the game's actual font."
+  }
+}

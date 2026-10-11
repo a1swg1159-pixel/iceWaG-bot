@@ -1,0 +1,253 @@
+{
+  "icons": {
+    "d1_01": {
+      "table": "DAN",
+      "sprite": "IconList_1"
+    },
+    "d1_02": {
+      "table": "DAN",
+      "sprite": "IconList_2"
+    },
+    "d1_03": {
+      "table": "DAN",
+      "sprite": "IconList_3"
+    },
+    "d1_04": {
+      "table": "DAN",
+      "sprite": "IconList_4"
+    },
+    "d1_05": {
+      "table": "DAN",
+      "sprite": "IconList_5"
+    },
+    "d1_06": {
+      "table": "DAN",
+      "sprite": "IconList_6"
+    },
+    "d1_07": {
+      "table": "DAN",
+      "sprite": "IconList_7"
+    },
+    "d1_08": {
+      "table": "DAN",
+      "sprite": "IconList_8"
+    },
+    "d1_09": {
+      "table": "DAN",
+      "sprite": "IconList_9"
+    },
+    "d1_10": {
+      "table": "DAN",
+      "sprite": "IconList_10"
+    },
+    "d1_11": {
+      "table": "DAN",
+      "sprite": "IconList_11"
+    },
+    "d1_12": {
+      "table": "DAN",
+      "sprite": "IconList_12"
+    },
+    "d1_13": {
+      "table": "DAN",
+      "sprite": "IconList_13"
+    },
+    "d1_14": {
+      "table": "DAN",
+      "sprite": "IconList_14"
+    },
+    "d1_15": {
+      "table": "DAN",
+      "sprite": "IconList_15"
+    },
+    "d2_01": {
+      "table": "DAN2",
+      "sprite": "icon2_1"
+    },
+    "d2_02": {
+      "table": "DAN2",
+      "sprite": "icon2_2"
+    },
+    "d2_03": {
+      "table": "DAN2",
+      "sprite": "icon2_3"
+    },
+    "d2_04": {
+      "table": "DAN2",
+      "sprite": "icon2_4"
+    },
+    "d2_05": {
+      "table": "DAN2",
+      "sprite": "icon2_5"
+    },
+    "d2_06": {
+      "table": "DAN2",
+      "sprite": "icon2_6"
+    },
+    "d2_07": {
+      "table": "DAN2",
+      "sprite": "icon2_7"
+    },
+    "d2_08": {
+      "table": "DAN2",
+      "sprite": "icon2_8"
+    },
+    "d2_09": {
+      "table": "DAN2",
+      "sprite": "icon2_9"
+    },
+    "d2_10": {
+      "table": "DAN2",
+      "sprite": "icon2_10"
+    },
+    "d2_11": {
+      "table": "DAN2",
+      "sprite": "icon2_11"
+    },
+    "d2_12": {
+      "table": "DAN2",
+      "sprite": "icon2_12"
+    },
+    "d2_13": {
+      "table": "DAN2",
+      "sprite": "icon2_13"
+    },
+    "d2_14": {
+      "table": "DAN2",
+      "sprite": "icon2_14"
+    },
+    "d2_15": {
+      "table": "DAN2",
+      "sprite": "icon2_15"
+    },
+    "d3_01": {
+      "table": "DAN3",
+      "sprite": "Dan3_1"
+    },
+    "d3_02": {
+      "table": "DAN3",
+      "sprite": "Dan3_2"
+    },
+    "d3_03": {
+      "table": "DAN3",
+      "sprite": "Dan3_3"
+    },
+    "d3_04": {
+      "table": "DAN3",
+      "sprite": "Dan3_4"
+    },
+    "d3_05": {
+      "table": "DAN3",
+      "sprite": "Dan3_5"
+    },
+    "d3_06": {
+      "table": "DAN3",
+      "sprite": "Dan3_6"
+    },
+    "d3_07": {
+      "table": "DAN3",
+      "sprite": "Dan3_7"
+    },
+    "d3_08": {
+      "table": "DAN3",
+      "sprite": "Dan3_8"
+    },
+    "d3_09": {
+      "table": "DAN3",
+      "sprite": "Dan3_9"
+    },
+    "d3_10": {
+      "table": "DAN3",
+      "sprite": "Dan3_10"
+    },
+    "d3_11": {
+      "table": "DAN3",
+      "sprite": "Dan3_11"
+    },
+    "d3_12": {
+      "table": "DAN3",
+      "sprite": "Dan3_12"
+    },
+    "d3_13": {
+      "table": "DAN3",
+      "sprite": "Dan3_13"
+    },
+    "d3_14": {
+      "table": "DAN3",
+      "sprite": "Dan3_14"
+    },
+    "d3_15": {
+      "table": "DAN3",
+      "sprite": "Dan3_15"
+    },
+    "d4_01": {
+      "table": "DAN4",
+      "sprite": "Dan4_1"
+    },
+    "d4_02": {
+      "table": "DAN4",
+      "sprite": "Dan4_2"
+    },
+    "d4_03": {
+      "table": "DAN4",
+      "sprite": "Dan4_3"
+    },
+    "d4_04": {
+      "table": "DAN4",
+      "sprite": "Dan4_4"
+    },
+    "d4_05": {
+      "table": "DAN4",
+      "sprite": "Dan4_5"
+    },
+    "d4_06": {
+      "table": "DAN4",
+      "sprite": "Dan4_6"
+    },
+    "d4_07": {
+      "table": "DAN4",
+      "sprite": "Dan4_7"
+    },
+    "d4_08": {
+      "table": "DAN4",
+      "sprite": "Dan4_8"
+    },
+    "d4_09": {
+      "table": "DAN4",
+      "sprite": "Dan4_9"
+    },
+    "d4_10": {
+      "table": "DAN4",
+      "sprite": "Dan4_10"
+    },
+    "d4_11": {
+      "table": "DAN4",
+      "sprite": "Dan4_11"
+    },
+    "d4_12": {
+      "table": "DAN4",
+      "sprite": "Dan4_12"
+    },
+    "d4_13": {
+      "table": "DAN4",
+      "sprite": "Dan4_13"
+    },
+    "d4_14": {
+      "table": "DAN4",
+      "sprite": "Dan4_14"
+    },
+    "d4_15": {
+      "table": "DAN4",
+      "sprite": "Dan4_15"
+    }
+  },
+  "title_plates": {
+    "0": "Achievement_0",
+    "1": "Achievement_1",
+    "2": "Achievement_2",
+    "3": "Achievement_3",
+    "4": "Achievement_4",
+    "5": "Achievement_5",
+    "6": "Achievement_6"
+  }
+}

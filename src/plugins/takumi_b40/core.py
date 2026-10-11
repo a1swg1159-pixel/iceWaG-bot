@@ -9,9 +9,10 @@ import logging
 import math
 import re
 import secrets
+import sys
 import threading
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from functools import lru_cache
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Sequence, Tuple
@@ -21,6 +22,12 @@ from PIL import Image, ImageDraw, ImageFont
 
 from src.image_credit import append_image_credit
 from src.score_level_query import LevelQuery, matches_level_query, parse_level_query
+from src.takumi_collections import (
+    COLLECTION_DATA_KEYS, PlayerCollections, load_achievements,
+    parse_collections, resolve_collections,
+)
+from src.takumi_profile import player_panel
+from src.takumi_render import Sample as RenderSample, TakumiRenderer
 
 
 PLAYFAB_TITLE_ID = "8372D"
@@ -70,9 +77,13 @@ CARD_GAP_X = 22
 CARD_GAP_Y = 22
 CARD_COLUMNS = 5
 SCORE_LIST_PAGE_SIZE = 40
-CONST_CARD_H = 136
-CONST_CARD_GAP_Y = 12
-CONST_SECTION_H = 94
+CONST_CARD_COLUMNS = 8
+CONST_CARD_W = 350
+CONST_CARD_H = 120
+CONST_CARD_GAP_X = 10
+CONST_CARD_GAP_Y = 8
+CONST_SECTION_H = 80
+CONST_SECTION_GAP = 10
 CONST_MAX_IMAGE_HEIGHT = 18000
 
 INK = (11, 20, 30)
@@ -121,6 +132,10 @@ class TakumiFetchError(TakumiError):
 
 class TakumiNoScoresError(TakumiError):
     """The authenticated account did not return score rows."""
+
+    # A const query can still display collections when no songs were played.
+    collections = PlayerCollections()
+    display_name = ""
 
 
 class TakumiChartDataError(TakumiError):
@@ -188,6 +203,8 @@ class B40Result:
     fetched_at: float
     all_scores: Tuple[BestScore, ...] = ()
     medals: Tuple[Tuple[int, int, int], ...] = ()
+    collections: PlayerCollections = PlayerCollections()
+    display_name: str = ""
 
     @property
     def is_complete(self) -> bool:
@@ -362,7 +379,7 @@ def unlink_account(custom_id: str) -> None:
 
 def fetch_user_data(session_ticket: str) -> dict:
     data = _playfab_call(
-        "GetUserData", {"Keys": list(REGULAR_SCORE_KEYS.values())},
+        "GetUserData", {"Keys": [*REGULAR_SCORE_KEYS.values(), *COLLECTION_DATA_KEYS]},
         session_ticket,
     )
     user_data = data.get("Data")
@@ -809,6 +826,7 @@ def build_b40_from_user_data(
             (song_id, difficulty_index, medal)
             for (song_id, difficulty_index), medal in raw_medals.items()
         ),
+        collections=resolve_collections(parse_collections(user_data)),
     )
 
 
@@ -823,8 +841,24 @@ def get_b40(custom_id: str, force_refresh: bool = False) -> B40Result:
             if cached and now - cached[0] < SCORE_CACHE_SECONDS:
                 return cached[1]
     session = login_with_custom_id(binding_secret)
-    result = build_b40_from_user_data(fetch_user_data(session.session_ticket))
+    user_data = fetch_user_data(session.session_ticket)
+    collections = resolve_collections(parse_collections(user_data))
+    # Known titles use the bundled/local catalog immediately. Only an unknown
+    # equipped title needs a bounded public-metadata refresh (never credentials).
+    if collections.achievement_id and not collections.title:
+        collections = resolve_collections(collections, load_achievements(allow_network=True))
+    try:
+        result = build_b40_from_user_data(user_data)
+    except TakumiNoScoresError as exc:
+        exc.collections = collections
+        exc.display_name = session.display_name
+        raise
+    result = replace(result, collections=collections, display_name=session.display_name)
     with _CACHE_LOCK:
+        expired = [key for key, (saved, _) in _RESULT_CACHE.items()
+                   if time.monotonic() - saved >= SCORE_CACHE_SECONDS]
+        for key in expired:
+            del _RESULT_CACHE[key]
         _RESULT_CACHE[binding_secret] = (time.monotonic(), result)
     return result
 
@@ -1396,9 +1430,8 @@ def _draw_b40_hero(
     canvas: Image.Image, player_name: str, result: B40Result,
 ) -> None:
     draw = ImageDraw.Draw(canvas)
-    name_font = text_font(68)
-    name = _truncate(draw, player_name or "PLAYER", name_font, 960)
-    draw.text((B40_MARGIN, 104), name, fill=B40_TEXT, font=name_font)
+    panel = player_panel(result.display_name or player_name, result.rating, result.collections)
+    canvas.paste(panel, (B40_MARGIN - 13, 34), panel)
 
     rating_x = 1184
     draw.text((rating_x, 56), "RATING", fill=B40_MUTED, font=ui_font(25))
@@ -1414,11 +1447,15 @@ def _draw_score_archive_hero(
     canvas: Image.Image,
     player_name: str,
     query: LevelQuery,
+    result: Optional[B40Result] = None,
 ) -> None:
     draw = ImageDraw.Draw(canvas)
-    name_font = text_font(62)
-    name = _truncate(draw, player_name or "PLAYER", name_font, 960)
-    draw.text((B40_MARGIN, 108), name, fill=B40_TEXT, font=name_font)
+    panel = player_panel(
+        (result.display_name if result else "") or player_name,
+        result.rating if result else None,
+        result.collections if result else PlayerCollections(),
+    )
+    canvas.paste(panel, (B40_MARGIN - 13, 34), panel)
 
     query_x = 1184
     draw.text((query_x, 56), "LEVEL QUERY", fill=B40_MUTED,
@@ -1673,41 +1710,35 @@ def _draw_takumi_song_card(
               fill=B40_MUTED, font=const_font)
 
 
+@lru_cache(maxsize=1)
+def _official_renderer():
+    return TakumiRenderer(sys.modules[__name__])
+
+
+def _render_samples(result, scores):
+    medals = {(song_id, difficulty): medal for song_id, difficulty, medal in result.medals}
+    return [
+        RenderSample(
+            score.song_id, score.title, score.difficulty, score.constant,
+            score.score, medals.get((score.song_id, DIFFICULTY_INDEXES.get(score.difficulty))),
+            score.single_rating,
+        )
+        for score in scores
+    ]
+
+
 def render_b40_image(
     result: B40Result, player_name: str, output_dir: Path, qq_user_id: str,
 ) -> Path:
     cleanup_old_images(output_dir)
-    canvas = Image.new("RGB", (CANVAS_W, CANVAS_H), B40_BG)
-    _draw_b40_background(canvas)
-    _draw_b40_hero(canvas, player_name, result)
-    draw = ImageDraw.Draw(canvas)
-    scores = list(result.scores[:40])
-    draw.text((B40_MARGIN, 370), "BEST 40", fill=B40_TEXT,
-              font=text_font(32))
-    average = (
-        sum(item.single_rating for item in scores) / len(scores)
-        if scores else 0.0
+    canvas = _official_renderer().score_sheet(
+        _render_samples(result, result.scores[:40]), result.rating, "BEST 40",
+        result.display_name or player_name, result.collections,
     )
-    average_text = f"AVERAGE  {average:.3f}"
-    average_font = ui_font(22)
-    average_w = draw.textbbox((0, 0), average_text, font=average_font)[2]
-    draw.text((CANVAS_W - B40_MARGIN - average_w, 378), average_text,
-              fill=B40_MUTED, font=average_font)
-
-    for index, score in enumerate(scores):
-        row, column = divmod(index, 5)
-        x = B40_MARGIN + column * (B40_COLUMN_W + B40_GAP)
-        y = 424 + row * (B40_CARD_H + B40_CARD_GAP_Y)
-        _draw_takumi_song_card(canvas, score, x, y, index)
-
     output_dir.mkdir(parents=True, exist_ok=True)
     safe_user = "".join(char for char in str(qq_user_id) if char.isalnum()) or "user"
-    path = output_dir / f"takumi_b40_{safe_user}_{int(result.fetched_at)}.png"
-    canvas = append_image_credit(
-        canvas, ui_font(22), footer_fill=B40_BG,
-        text_fill=B40_TEXT_SOFT, rule_fill=B40_ACCENT,
-    )
-    canvas.save(path, format="PNG", optimize=True)
+    path = output_dir / f"takumi_b40_{safe_user}_{time.time_ns()}.png"
+    canvas.save(path, format="PNG", compress_level=3)
     return path
 
 
@@ -1736,69 +1767,28 @@ def render_score_list_images(
     output_dir: Path,
     qq_user_id: str,
 ) -> List[Path]:
-    """Render TAKUMI³ level-query results as paginated score sheets."""
+    """Render score results with the approved TAKUMI artwork/card system."""
     cleanup_old_images(output_dir)
     page_count = max(1, math.ceil(len(scores) / SCORE_LIST_PAGE_SIZE))
     timestamp = time.time_ns()
-    safe_user = "".join(
-        char for char in str(qq_user_id) if char.isalnum()
-    ) or "user"
+    safe_user = "".join(char for char in str(qq_user_id) if char.isalnum()) or "user"
     safe_level = query.label.replace("+", "p").replace(".", "d")
-    paths: List[Path] = []
-
+    output_dir.mkdir(parents=True, exist_ok=True)
+    paths = []
     for page_index in range(page_count):
-        page_scores = scores[
-            page_index * SCORE_LIST_PAGE_SIZE:
-            (page_index + 1) * SCORE_LIST_PAGE_SIZE
-        ]
-        rows = max(1, math.ceil(len(page_scores) / 5))
-        content_bottom = (
-            424 + rows * B40_CARD_H
-            + max(0, rows - 1) * B40_CARD_GAP_Y
+        offset = page_index * SCORE_LIST_PAGE_SIZE
+        page_scores = scores[offset:offset + SCORE_LIST_PAGE_SIZE]
+        label = f"LEVEL {query.label}"
+        if page_count > 1:
+            label += f"  {page_index + 1}/{page_count}"
+        canvas = _official_renderer().score_sheet(
+            _render_samples(result, page_scores), result.rating, label,
+            result.display_name or player_name, result.collections,
+            min_height=900, index_offset=offset,
         )
-        canvas_h = max(900, content_bottom + 96)
-        canvas = Image.new("RGB", (CANVAS_W, canvas_h), B40_BG)
-        _draw_b40_background(canvas)
-        _draw_score_archive_hero(
-            canvas,
-            player_name,
-            query,
-        )
-
-        draw = ImageDraw.Draw(canvas)
-        draw.text((B40_MARGIN, 370), "SCORE RESULTS", fill=B40_TEXT,
-                  font=text_font(32))
-        average = (
-            sum(item.single_rating for item in scores) / len(scores)
-            if scores else 0.0
-        )
-        stat_text = f"AVG CHART RT  {average:.3f}"
-        stat_font = ui_font(22)
-        stat_w = draw.textbbox((0, 0), stat_text, font=stat_font)[2]
-        draw.text((CANVAS_W - B40_MARGIN - stat_w, 378), stat_text,
-                  fill=B40_MUTED, font=stat_font)
-
-        global_offset = page_index * SCORE_LIST_PAGE_SIZE
-        for local_index, score in enumerate(page_scores):
-            row, column = divmod(local_index, 5)
-            x = B40_MARGIN + column * (B40_COLUMN_W + B40_GAP)
-            y = 424 + row * (B40_CARD_H + B40_CARD_GAP_Y)
-            _draw_takumi_song_card(
-                canvas, score, x, y, global_offset + local_index,
-            )
-
-        output_dir.mkdir(parents=True, exist_ok=True)
-        path = output_dir / (
-            f"takumi_score_{safe_user}_{safe_level}_{timestamp}_"
-            f"{page_index + 1}.png"
-        )
-        credited = append_image_credit(
-            canvas, ui_font(22), footer_fill=B40_BG,
-            text_fill=B40_TEXT_SOFT, rule_fill=B40_ACCENT,
-        )
-        credited.save(path, format="PNG", optimize=True)
+        path = output_dir / f"takumi_score_{safe_user}_{safe_level}_{timestamp}_{page_index + 1}.png"
+        canvas.save(path, format="PNG", compress_level=3)
         paths.append(path)
-
     return paths
 
 
@@ -1861,127 +1851,62 @@ def _draw_const_card(
     canvas: Image.Image, entry: ConstEntry, x: int, y: int, index: int,
 ) -> None:
     draw = ImageDraw.Draw(canvas)
-    right = x + B40_COLUMN_W
+    right = x + CONST_CARD_W
     draw.rectangle((x, y, right, y + CONST_CARD_H), fill=B40_SURFACE)
     draw.rectangle((x, y, x + 4, y + CONST_CARD_H),
                    fill=DIFFICULTY_META.get(entry.difficulty, ("", B40_ACCENT))[1])
     jacket = load_jacket_image(entry.song_id)
     if jacket is not None:
-        canvas.paste(jacket.resize((108, 108), Image.Resampling.LANCZOS),
-                     (x + 14, y + 14))
+        canvas.paste(jacket.resize((92, 92), Image.Resampling.LANCZOS),
+                     (x + 10, y + 14))
     else:
-        draw.rectangle((x + 14, y + 14, x + 122, y + 122), fill=B40_SURFACE_RAISED)
-        draw.text((x + 36, y + 51), "T3", fill=B40_ACCENT, font=number_font(31))
+        draw.rectangle((x + 10, y + 14, x + 102, y + 106),
+                       fill=B40_SURFACE_RAISED)
+        draw.text((x + 28, y + 44), "T3", fill=B40_ACCENT,
+                  font=number_font(31))
 
-    text_x = x + 138
+    text_x = x + 116
     diff = DIFFICULTY_META.get(entry.difficulty, (entry.difficulty[:3],))[0]
-    draw.text((text_x, y + 9), f"{index:03d}  /  {diff}",
-              fill=B40_MUTED, font=ui_font(19))
+    draw.text((text_x, y + 4), f"{index:03d}  /  {diff}",
+              fill=B40_TEXT_SOFT, font=ui_font(18))
     if entry.score is not None and entry.medal in (4, 5):
         medal_text = "AJ" if entry.medal == 5 else "FC"
-        medal_font = ui_font(20)
+        medal_font = ui_font(18)
         medal_width = draw.textbbox((0, 0), medal_text, font=medal_font)[2]
-        draw.text((right - medal_width - 15, y + 8), medal_text,
+        draw.text((right - medal_width - 10, y + 4), medal_text,
                   fill=B40_AMBER if entry.medal == 5 else B40_ACCENT,
                   font=medal_font)
-    draw.text((text_x, y + 35),
-              _truncate(draw, entry.title, text_font(25), right - text_x - 14),
-              fill=B40_TEXT, font=text_font(25))
+    title_font = text_font(26)
+    title_lines = _b40_title_lines(
+        draw, entry.title, title_font, right - text_x - 10, 2,
+    )
+    for line_index, line in enumerate(title_lines):
+        draw.text((text_x, y + 22 + line_index * 28), line,
+                  fill=B40_TEXT, font=title_font)
     if entry.score is None:
-        draw.text((text_x, y + 78), "UNPLAYED", fill=B40_MUTED,
-                  font=ui_font(27))
+        draw.text((text_x, y + 85), "UNPLAYED", fill=B40_TEXT_SOFT,
+                  font=ui_font(24))
     else:
-        draw.text((text_x, y + 76), f"{entry.score:,}",
-                  fill=B40_TEXT, font=number_font(34))
+        draw.text((text_x, y + 81), f"{entry.score:,}",
+                  fill=B40_TEXT, font=number_font(31))
         _paste_rank_image(canvas, score_rank(entry.score),
-                          right - 14, y + 75, 94, 45)
+                          right - 10, y + 84, 67, 32)
 
 
 def render_const_list_images(
     entries: Sequence[ConstEntry], query: ConstQuery, player_name: str,
     output_dir: Path, qq_user_id: str,
+    *, collections: Optional[PlayerCollections] = None, rating: Optional[float] = None,
 ) -> List[Path]:
-    """Render the complete constant range as one continuous image."""
+    """One fixed-width sheet, with all charts and per-tenth statistics."""
     cleanup_old_images(output_dir)
-    groups = _const_groups(entries, query)
-    matched = [entry for _, group in groups for entry in group]
-    overview = const_stats(matched)
-    safe_user = "".join(char for char in str(qq_user_id) if char.isalnum()) or "user"
-    content_y = 430 + sum(
-        CONST_SECTION_H + math.ceil(len(group) / 5) * (
-            CONST_CARD_H + CONST_CARD_GAP_Y
-        ) + 18
-        for _, group in groups
+    canvas = _official_renderer().const_sheet(
+        entries, query, rating, player_name, collections,
     )
-    canvas_h = max(670, content_y + 38)
-    if canvas_h > CONST_MAX_IMAGE_HEIGHT:
-        raise TakumiChartDataError(
-            "定数范围太大，单张长图会超出安全尺寸；请缩小查询范围。"
-        )
-
-    canvas = Image.new("RGB", (CANVAS_W, canvas_h), B40_BG)
-    _draw_b40_background(canvas)
-    draw = ImageDraw.Draw(canvas)
-    draw.text((B40_MARGIN, 66), "TAKUMI³  /  CONST ARCHIVE",
-              fill=B40_ACCENT, font=ui_font(28))
-    draw.text((B40_MARGIN, 112),
-              _truncate(draw, player_name or "PLAYER", text_font(62), 1050),
-              fill=B40_TEXT, font=text_font(62))
-    draw.text((1184, 66), "CONSTANT RANGE", fill=B40_MUTED,
-              font=ui_font(25))
-    draw.text((1174, 99), query.label, fill=B40_TEXT,
-              font=number_font(110))
-    draw.line((B40_MARGIN, 260, CANVAS_W - B40_MARGIN, 260),
-              fill=B40_RULE, width=2)
-    metrics = (
-        ("CHARTS", str(overview.total)),
-        ("PLAYED", f"{overview.played} / {overview.total}"),
-        ("S+", str(overview.s_plus)),
-        ("FC", str(overview.fc)),
-        ("AJ", str(overview.aj)),
-    )
-    for index, (label, value) in enumerate(metrics):
-        x = B40_MARGIN + index * 580
-        draw.text((x, 292), label, fill=B40_MUTED, font=ui_font(21))
-        draw.text((x, 321), value, fill=B40_TEXT_SOFT,
-                  font=number_font(39))
-    draw.line((B40_MARGIN, 395, CANVAS_W - B40_MARGIN, 395),
-              fill=B40_RULE, width=2)
-
-    y = 430
-    for tenth, group in groups:
-        stats = const_stats(group)
-        draw.text((B40_MARGIN, y), f"CONST {tenth / 10:.1f}",
-                  fill=B40_TEXT, font=number_font(39))
-        summary = (
-            f"{stats.total} CHARTS  /  {stats.played} PLAYED  /  "
-            f"S+ {stats.s_plus}  /  S {stats.s}  /  AAA {stats.aaa}"
-            f"  /  FC {stats.fc}  /  AJ {stats.aj}"
-        )
-        stat_font = ui_font(24)
-        stat_width = draw.textbbox((0, 0), summary, font=stat_font)[2]
-        draw.text((CANVAS_W - B40_MARGIN - stat_width, y + 14), summary,
-                  fill=B40_TEXT_SOFT, font=stat_font)
-        draw.line((B40_MARGIN, y + 64, CANVAS_W - B40_MARGIN, y + 64),
-                  fill=B40_RULE, width=1)
-        for index, entry in enumerate(group):
-            row, column = divmod(index, 5)
-            x = B40_MARGIN + column * (B40_COLUMN_W + B40_GAP)
-            card_y = y + CONST_SECTION_H + row * (
-                CONST_CARD_H + CONST_CARD_GAP_Y
-            )
-            _draw_const_card(canvas, entry, x, card_y, index + 1)
-        y += CONST_SECTION_H + math.ceil(len(group) / 5) * (
-            CONST_CARD_H + CONST_CARD_GAP_Y
-        ) + 18
-
     output_dir.mkdir(parents=True, exist_ok=True)
+    safe_user = "".join(char for char in str(qq_user_id) if char.isalnum()) or "user"
     path = output_dir / f"takumi_const_{safe_user}_{time.time_ns()}.png"
-    credited = append_image_credit(
-        canvas, ui_font(22), footer_fill=B40_BG,
-        text_fill=B40_TEXT_SOFT, rule_fill=B40_ACCENT,
-    )
-    credited.save(path, format="PNG", optimize=True)
+    canvas.save(path, format="PNG", compress_level=3)
     return [path]
 
 
@@ -1993,16 +1918,21 @@ def generate_const_list_images(
     catalog = load_song_catalog()
     played_scores: Sequence[BestScore] = ()
     medals: Dict[Tuple[int, int], int] = {}
+    collections = PlayerCollections()
+    rating = None
     if custom_id:
         try:
             result = get_b40(custom_id)
+            collections, rating = result.collections, result.rating
+            player_name = result.display_name or player_name
             played_scores = result.all_scores or result.scores
             medals = {
                 (song_id, difficulty_index): medal
                 for song_id, difficulty_index, medal in result.medals
             }
-        except TakumiNoScoresError:
-            pass
+        except TakumiNoScoresError as exc:
+            collections = exc.collections
+            player_name = exc.display_name or player_name
     entries = build_const_entries(catalog, played_scores, medals=medals)
     selected = [
         entry for entry in entries
@@ -2012,5 +1942,6 @@ def generate_const_list_images(
         return [], 0, 0
     paths = render_const_list_images(
         selected, query, player_name, output_dir, qq_user_id,
+        collections=collections, rating=rating,
     )
     return paths, len(selected), sum(entry.score is not None for entry in selected)
