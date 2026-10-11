@@ -1,0 +1,56 @@
+{
+  "purpose": "Bundled MAGiCAL theme for production /mai b50 and /mai score reports.",
+  "checked_date": "2026-10-11",
+  "official_site": "https://maimai.sega.jp/",
+  "rating_rules": {
+    "source": "https://info-maimai.sega.jp/8674/",
+    "source_date": "2026-03-10",
+    "lower_tiers": "0 white, 1000 blue, 2000 green, 4000 yellow, 7000 red, 10000 purple, 12000 bronze, 13000 silver; no attached star medal below 14000.",
+    "star_tiers": "14000 gold 1, 14250 gold 2, 14500 platinum 1, 14750 platinum 2, 15000 rainbow 1, 15250 rainbow 2, 15500 rainbow 3, 15750 rainbow 4, 16000 kiwami 1, 16250 kiwami 2, 16500 kiwami 3, 16750+ kiwami 4.",
+    "note": "SEGA's table takes precedence over the older low-rating thresholds in the referenced third-party profile implementation. These are display tiers, not changes to the score/Rating calculation."
+  },
+  "profile_layout_references": {
+    "official_result_announcement": "https://info-maimai.sega.jp/5109/",
+    "layout_implementation_reference": "https://unpkg.com/maidraw@0.13.15/dist/maimai/painter/modules/profile.js",
+    "note": "Cabinet-style layout reconstruction, not a screenshot. Real player icon/name_plate/trophy are provided by LXNS. Missing collections use a neutral placeholder; no sample avatar or plate is bundled."
+  },
+  "official_assets": {
+    "logo.png": "https://maimai.sega.jp/storage/root/logo_pc.png",
+    "characters.png": "https://maimai.sega.jp/storage/root/chara.png",
+    "sky.png": "https://maimai.sega.jp/assets/maiDecorationBg/pc/sp_bg_02.png",
+    "section.png": "https://maimai.sega.jp/assets/maiTitleSub/pc/title_base.png"
+  },
+  "game_sprites": {
+    "repository": "https://github.com/saltcute/maidraw",
+    "commit": "cf0798373ce0c88a132280f7866be68952327de4",
+    "base": "https://raw.githubusercontent.com/saltcute/maidraw/cf0798373ce0c88a132280f7866be68952327de4/assets/themes/maimai/best50/",
+    "grade_{key}.webp": "magical/assets/achievement/{key}.webp",
+    "badge_{key}.webp": "versionless/milestone/{key}.webp",
+    "mode_{key}.webp": "versionless/mode/jp/{key}.webp",
+    "profile_rating_white.webp": "versionless/dxRating/jp/white.webp",
+    "profile_rating_blue.webp": "versionless/dxRating/jp/blue.webp",
+    "profile_rating_green.webp": "versionless/dxRating/jp/green.webp",
+    "profile_rating_yellow.webp": "versionless/dxRating/jp/yellow.webp",
+    "profile_rating_red.webp": "versionless/dxRating/jp/red.webp",
+    "profile_rating_purple.webp": "versionless/dxRating/jp/purple.webp",
+    "profile_rating_bronze.webp": "versionless/dxRating/jp/bronze.webp",
+    "profile_rating_silver.webp": "versionless/dxRating/jp/silver.webp",
+    "profile_rating_gold.webp": "versionless/dxRating/jp/circleplus/gold.webp",
+    "profile_rating_platinum.webp": "versionless/dxRating/jp/circleplus/platinum.webp",
+    "profile_rating_rainbow.webp": "versionless/dxRating/jp/circleplus/rainbow.webp",
+    "profile_rating_kiwami.webp": "versionless/dxRating/jp/circleplus/kiwami.webp",
+    "profile_star_1.webp": "versionless/dxRating/star/01.webp",
+    "profile_star_2.webp": "versionless/dxRating/star/02.webp",
+    "profile_star_3.webp": "versionless/dxRating/star/03.webp",
+    "profile_star_4.webp": "versionless/dxRating/star/04.webp",
+    "profile_rating_digits.webp": "versionless/dxRating/numberMap.webp",
+    "license_note": "Repository MIT license retained as LICENSE.maidraw.txt. That repository license is not a claim of ownership or a blanket license to SEGA artwork. Official game art remains the property of its rights holders."
+  },
+  "fonts": {
+    "MPLUSRounded1c-ExtraBold.ttf": "https://raw.githubusercontent.com/google/fonts/main/ofl/mplusrounded1c/MPLUSRounded1c-ExtraBold.ttf",
+    "metadata": "https://raw.githubusercontent.com/google/fonts/main/ofl/mplusrounded1c/METADATA.pb",
+    "license": "SIL Open Font License 1.1; Copyright 2016 The Rounded M+ Project Authors, per the font binary and Google Fonts metadata.",
+    "others": "Existing locally bundled Noto Sans CJK JP Bold, Outfit and Rajdhani fonts; companion choices, not represented as official arcade fonts."
+  },
+  "rendering": "Offline Pillow; 568x236 cards, five per row, fixed 3000 px sheet width; bounded shared public-jacket cache."
+}

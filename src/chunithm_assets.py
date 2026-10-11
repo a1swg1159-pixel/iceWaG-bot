@@ -80,7 +80,10 @@ class ArtworkCache:
 
     def __init__(self, root=CACHE_ROOT, *, max_bytes=MAX_CACHE_BYTES,
                  max_idle=MAX_IDLE_SECONDS, failure_ttl=FAILURE_TTL_SECONDS,
-                 clock=None, memory_bytes=MAX_MEMORY_BYTES):
+                 clock=None, memory_bytes=MAX_MEMORY_BYTES, game="chunithm"):
+        if game not in {"chunithm", "maimai"}:
+            raise ValueError("Unsupported public artwork game")
+        self.game = game
         self.root = Path(root).absolute()
         self.max_bytes = max_bytes
         self.max_idle = max_idle
@@ -234,7 +237,7 @@ class ArtworkCache:
                 for name in dict.fromkeys(names):
                     response = None
                     try:
-                        response = requests.get(f"{base}/chunithm/{kind}/{name}",
+                        response = requests.get(f"{base}/{self.game}/{kind}/{name}",
                                                 headers=headers, timeout=(3, timeout),
                                                 allow_redirects=True)
                         if response.status_code != 200:
