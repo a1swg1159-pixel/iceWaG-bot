@@ -3289,6 +3289,19 @@
     "is_public": true
   },
   {
+    "song_id": 264,
+    "internal_name": "Full_Metal_Age",
+    "title": "鋼鉄の嬰児 -Full Metal Age-",
+    "levels": [
+      "60",
+      "125",
+      "145",
+      "156"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
     "song_id": 265,
     "internal_name": "Bright_red_hertz",
     "title": "Bright red hertz",
@@ -3572,6 +3585,45 @@
       "9999"
     ],
     "special": "Dl",
+    "is_public": true
+  },
+  {
+    "song_id": 329,
+    "internal_name": "Absolute_end",
+    "title": "Absolute end.",
+    "levels": [
+      "90",
+      "133",
+      "150",
+      "160"
+    ],
+    "special": "DlDhl",
+    "is_public": true
+  },
+  {
+    "song_id": 330,
+    "internal_name": "Sekaizyu_no_yakusoku",
+    "title": "世界樹の約束 ~World tree Promise~",
+    "levels": [
+      "40",
+      "115",
+      "141",
+      "9999"
+    ],
+    "special": "Dl",
+    "is_public": true
+  },
+  {
+    "song_id": 331,
+    "internal_name": "Hosikuzu_monogatari",
+    "title": "星屑物語",
+    "levels": [
+      "50",
+      "105",
+      "140",
+      "154"
+    ],
+    "special": "DlDhl",
     "is_public": true
   }
 ]

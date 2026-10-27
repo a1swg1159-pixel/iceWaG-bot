@@ -505,12 +505,34 @@ def _load_bundled_catalog() -> Tuple[CatalogChart, ...]:
 
 
 def _load_local_catalog() -> Tuple[CatalogChart, ...]:
+    bundled = _load_bundled_catalog()
     if RUNTIME_CATALOG_PATH.exists():
         try:
-            return _load_catalog_file(RUNTIME_CATALOG_PATH)
+            runtime = _load_catalog_file(RUNTIME_CATALOG_PATH)
+            bundled_ids = {item.song_id for item in bundled}
+            runtime_ids = {item.song_id for item in runtime}
+            if bundled_ids > runtime_ids:
+                logger.info(
+                    "Using newer bundled TAKUMI³ catalog (%d songs) instead "
+                    "of stale runtime cache (%d songs)",
+                    len(bundled_ids), len(runtime_ids),
+                )
+                return bundled
+            if runtime_ids >= bundled_ids:
+                return runtime
+            # The two snapshots diverged (for example, an official deletion
+            # happened alongside additions). Prefer the one with the newest
+            # song ID, then the larger song/chart coverage.
+            runtime_version = (
+                max(runtime_ids, default=-1), len(runtime_ids), len(runtime)
+            )
+            bundled_version = (
+                max(bundled_ids, default=-1), len(bundled_ids), len(bundled)
+            )
+            return runtime if runtime_version >= bundled_version else bundled
         except TakumiChartDataError:
             logger.warning("Ignoring an invalid TAKUMI³ runtime catalog", exc_info=True)
-    return _load_bundled_catalog()
+    return bundled
 
 
 def load_song_catalog(force_refresh: bool = False) -> Tuple[CatalogChart, ...]:

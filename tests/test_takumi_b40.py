@@ -223,6 +223,30 @@ class TakumiRatingTests(unittest.TestCase):
         self.assertEqual(master.constant, 13.9)
         self.assertEqual(master.level, "13+")
 
+    def test_newer_bundled_catalog_beats_stale_runtime_cache(self):
+        stale_payload = [{
+            "song_id": 1,
+            "internal_name": "OldSong",
+            "title": "Old Song",
+            "levels": ["60", "100", "130", "150"],
+            "special": "Dl",
+            "is_public": True,
+        }]
+        bundled = (
+            CatalogChart(1, "Old Song", "MASTER", "13", 13.0),
+            CatalogChart(331, "New Song", "MASTER", "15", 15.0),
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            runtime_path = Path(directory) / "takumi_song_catalog.json"
+            runtime_path.write_text(
+                json.dumps(stale_payload, ensure_ascii=False), encoding="utf-8"
+            )
+            with patch.object(CORE, "RUNTIME_CATALOG_PATH", runtime_path), \
+                    patch.object(CORE, "_load_bundled_catalog", return_value=bundled):
+                selected = CORE._load_local_catalog()
+
+        self.assertEqual(selected, bundled)
+
 
 class TakumiPlayFabTests(unittest.TestCase):
     def test_email_login_and_custom_id_link_use_expected_endpoints(self):
