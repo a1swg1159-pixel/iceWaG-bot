@@ -11,6 +11,7 @@ from PIL import Image, ImageChops
 
 from src import takumi_collections as collections
 from src import takumi_profile as profile
+from src import takumi_jackets as jackets
 
 ROOT = Path(__file__).resolve().parents[1]
 SPEC = importlib.util.spec_from_file_location("takumi_collection_test_core", ROOT / "src/plugins/takumi_b40/core.py")
@@ -81,6 +82,31 @@ class CollectionParsingTests(unittest.TestCase):
         original = icon.tobytes()
         icon.paste((0, 0, 0, 0), (0, 0, 192, 192))
         self.assertEqual(collections.load_icon("d2_15").tobytes(), original)
+
+    def test_equipped_jacket_avatar_uses_game_internal_name(self):
+        icon = collections.load_icon("ja_TRIIIDiM3NXi0NaL")
+        self.assertIsNotNone(icon)
+        self.assertEqual(icon.mode, "RGBA")
+        self.assertEqual(icon.tobytes(), core.load_jacket_image(231).convert("RGBA").tobytes())
+        self.assertIs(core.load_jacket_image, jackets.load_jacket_image)
+
+    def test_jacket_avatar_is_a_fresh_layer_and_never_downloads(self):
+        with patch.object(collections.requests, "get", side_effect=AssertionError("Offline renderer")):
+            icon = collections.load_icon("ja_TRIIIDiM3NXi0NaL")
+            expected = icon.tobytes()
+            icon.paste((0, 0, 0, 0), (0, 0, *icon.size))
+            self.assertEqual(collections.load_icon("ja_TRIIIDiM3NXi0NaL").tobytes(), expected)
+        self.assertIsNone(collections.load_icon("ja_../../.env"))
+        self.assertIsNone(collections.load_icon("ja_unknown-future-song"))
+        with patch.object(jackets, "load_jacket_image", return_value=None):
+            self.assertIsNone(collections.load_icon("ja_TRIIIDiM3NXi0NaL"))
+
+    def test_jacket_equipment_reaches_the_actual_profile_panel(self):
+        equipped = collections.parse_collections(data(icon="ja_TRIIIDiM3NXi0NaL"))
+        panel = profile.player_panel("Test", 16.3, equipped)
+        empty = profile.player_panel("Test", 16.3, collections.PlayerCollections())
+        avatar_box = (85, 30, 260, 210)
+        self.assertNotEqual(panel.crop(avatar_box).tobytes(), empty.crop(avatar_box).tobytes())
 
     def test_all_extracted_art_is_decodable(self):
         index = json.loads((collections.ASSETS / "icons.json").read_text())

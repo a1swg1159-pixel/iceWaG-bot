@@ -27,6 +27,7 @@ from src.takumi_collections import (
     parse_collections, resolve_collections,
 )
 from src.takumi_profile import player_panel
+from src.takumi_jackets import load_jacket_atlas as _load_jacket_atlas, load_jacket_image
 from src.takumi_render import Sample as RenderSample, TakumiRenderer
 
 
@@ -40,8 +41,6 @@ SONG_CATALOG_URL = (
 CHARTS_PATH = Path(__file__).with_name("charts.json")
 SONG_CATALOG_PATH = Path(__file__).with_name("song_catalog.json")
 RUNTIME_CATALOG_PATH = Path("data") / "takumi_song_catalog.json"
-JACKET_ATLAS_PATH = Path(__file__).with_name("jacket_atlas.webp")
-JACKET_INDEX_PATH = Path(__file__).with_name("jacket_atlas.json")
 RANK_ATLAS_PATH = Path(__file__).with_name("rank_atlas.webp")
 RANK_INDEX_PATH = Path(__file__).with_name("rank_atlas.json")
 MAX_RESPONSE_BYTES = 2 * 1024 * 1024
@@ -1031,37 +1030,6 @@ def bold_font(size: int) -> ImageFont.FreeTypeFont:
         "data/b30_assets/font/FOT_NewRodin_Pro_EB.otf",
         "/usr/share/truetype/dejavu/DejaVuSans-Bold.ttf",
     ), size)
-
-
-@lru_cache(maxsize=1)
-def _load_jacket_atlas() -> Tuple[Image.Image, dict, int, int]:
-    try:
-        metadata = json.loads(JACKET_INDEX_PATH.read_text(encoding="utf-8"))
-        cell_size = int(metadata["cell_size"])
-        columns = int(metadata["columns"])
-        songs = metadata["songs"]
-        if cell_size <= 0 or columns <= 0 or not isinstance(songs, dict):
-            raise ValueError
-        with Image.open(JACKET_ATLAS_PATH) as source:
-            atlas = source.convert("RGB")
-    except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError) as exc:
-        raise TakumiChartDataError("TAKUMI³ 本地曲绘图集读取失败。") from exc
-    return atlas, songs, cell_size, columns
-
-
-@lru_cache(maxsize=512)
-def load_jacket_image(song_id: int) -> Optional[Image.Image]:
-    """Return one square jacket from the compact bundled atlas."""
-    try:
-        atlas, songs, cell_size, columns = _load_jacket_atlas()
-        position = int(songs[str(int(song_id))])
-    except (TakumiChartDataError, KeyError, TypeError, ValueError):
-        return None
-    column, row = position % columns, position // columns
-    left, top = column * cell_size, row * cell_size
-    if left + cell_size > atlas.width or top + cell_size > atlas.height:
-        return None
-    return atlas.crop((left, top, left + cell_size, top + cell_size))
 
 
 @lru_cache(maxsize=1)

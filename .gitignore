@@ -5,6 +5,7 @@ __pycache__/
 
 # 配置（含 Token，不上传）
 .env
+.server-update/
 
 # Windows 本地环境
 NapCat/
@@ -36,9 +37,11 @@ data/email_bindings.json
 data/coins.json
 data/quiz.json
 data/uno_games.json
+data/watchdog/
 data/takumi_bindings.json
 data/takumi_song_catalog.json
 data/takumi_achievements.json
 data/takumi_achievements.json.tmp
 tmp/takumi_collections/
 tmp/takumi_asset_deps/
+tmp/watchdog_test_deps/

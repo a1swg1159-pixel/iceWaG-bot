@@ -130,9 +130,84 @@ docker compose restart         # 重启（不重建）
 docker compose down            # 完全停止
 ```
 
+### 从 Windows 一键更新服务器
+
+首次双击项目根目录的 `setup_server_update.bat`，填写 SSH 地址（如 `a1swg@服务器IP` 或已配置的 SSH 别名）、端口、项目目录和密码。设置完成后，双击 `update_server.bat` 即可自动登录并更新。默认更新服务器的 `~/iceWaG-bot`、`main` 分支；服务器上的 SSH 用户须已有 Docker 权限。首次连接仍需核对 SSH 窗口里的主机指纹并在弹窗中确认，主机密钥发生变化时不会自动接受。
+
+地址等设置保存在本机 `.server-update/connection.json`；密码通过 Windows DPAPI 加密保存在同目录 `credential.clixml`，绑定当前电脑及 Windows 用户，整个目录已排除 Git 和 Docker 构建。密码不进入命令参数、日志或明文临时文件；修改 IP/端口时不会自动套用旧密码。配置时密码留空会清除已保存密码，改为由 SSH 询问。需要改密码或服务器信息时再次运行 `setup_server_update.bat`。此入口只保存配置，不会立即更新服务器。加密机制参考 [Microsoft Export-Clixml 文档](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.utility/export-clixml?view=powershell-5.1)。
+
+也可以直接双击 `update_server.bat`，每次按提示输入地址和密码，不保存登录信息。已保存配置时，命令行参数优先于配置。
+
+也可以在本地 PowerShell 中运行：
+
+```powershell
+.\update_server.bat -Target a1swg@服务器IP
+# 自定义 SSH 端口、项目目录或私钥；不传 Port 时沿用 SSH 配置
+.\update_server.bat -Target a1swg@服务器IP -Port 2222 -RemotePath /home/a1swg/iceWaG-bot -IdentityFile "$env:USERPROFILE\.ssh\id_ed25519"
+```
+
+脚本通过 SSH 执行 `git pull --ff-only`，先构建镜像，再更新 `bot` 服务，最多等待 60 秒检查 HTTP 服务并显示最近日志。保留服务器现有 Compose 配置和默认 override，不重启 NapCat，不执行 `down`、强制重置、自动暂存或镜像清理；拉取冲突、分支不一致、构建失败都会停止。构建失败时原容器仍继续运行；若启动新容器后失败则显示日志，不自动回滚。HTTP 检查成功不代表 QQ 在线，完成后可在开放该功能的群内 @Bot 发送 `/ping` 验证。
+
+需要一并更新已配置好的邮件监控时，加上 `-WithWatchdog`（对应代码须先推送到远程仓库，SMTP 配置须已填写）：
+
+```powershell
+.\update_server.bat -Target a1swg@服务器IP -WithWatchdog
+```
+
+使用自定义 `COMPOSE_FILE` 的部署，请继续使用自己的 Compose 命令更新监控。只更新 Bot 时仍沿用该配置。脚本更新的是 GitHub 已提交推送的代码，不会上传本机尚未提交的改动或 `.env`。
+
+命令行为参考：[Docker Compose build](https://docs.docker.com/reference/cli/docker/compose/build/)、[Docker Compose up](https://docs.docker.com/reference/cli/docker/compose/up/)、[OpenSSH](https://man.openbsd.org/ssh.1)。
+
 ### 时区说明
 
 两个容器均设置 `TZ=Asia/Shanghai`，所有定时任务和 `/time` 指令均使用北京时间。部署后发 `/time` 可验证。
+
+### 掉线邮件提醒（可选）
+
+独立的 `watchdog` 容器通过带 Token 的 `/internal/health` 检查 Bot 是否响应，再由 Bot 调用 NapCat 的只读 `get_status` 确认 QQ 在线状态。不是只看容器 `Up` 或历史 `connected` 日志。没有改动普通群的帮助菜单，也不会读取 `/email` 用户绑定文件里的邮箱授权码。
+
+- 每 30 秒检查一次；启动宽限 120 秒，异常至少持续 120 秒后发一封掉线邮件。
+- 同一次异常只提醒一次；连续恢复 60 秒再发一封恢复邮件。短暂断线不发邮件。
+- 邮件发送失败时默认间隔 300 秒重试；去重状态保存在 `data/watchdog/state.json`，重建监控容器后仍保留。SMTP 接受邮件不等于收件箱一定收到，请检查垃圾邮件箱。
+- 能发现 Bot 停止/阻塞、OneBot 断开或状态接口超时、接口报告 QQ 离线。**不能保证发现群禁言、QQ 发信风控、某个指令失效或“接口说在线但消息不通”**，因为监控不会自动发送测试 QQ 消息。
+- **同一服务器关机、整机断网、Docker/监控本身停止时无法及时发信**；这些情况需要另一台机器或外部监控。此功能不会自动重启 Bot、踢掉 QQ 或重新登录。
+
+1. 在服务器现有 `.env` 中追加下面配置，不要覆盖其他配置，也不要把授权码发送到群聊或提交 Git。下面以 QQ 邮箱为例，需在邮箱设置中启用 SMTP 并取得授权码；其他邮箱填写对应的 SMTP 参数。
+
+```dotenv
+ALERT_SMTP_HOST=smtp.qq.com
+ALERT_SMTP_PORT=465
+ALERT_SMTP_SECURITY=ssl
+ALERT_SMTP_USER=发件邮箱@qq.com
+ALERT_SMTP_PASSWORD=邮箱SMTP授权码
+ALERT_EMAIL_TO=接收提醒的邮箱地址
+ALERT_INSTANCE_NAME=iceWaG-bot
+```
+
+发件人默认等于 `ALERT_SMTP_USER`，也可设置 `ALERT_EMAIL_FROM`；收件人只填一个地址，可以与发件邮箱相同。支持 `ssl`（通常 465）与 `starttls`（通常 587），**不允许明文认证或跳过证书校验**。现有 `ONEBOT_V11_ACCESS_TOKEN` 必须是有效非空值，监控复用它鉴权；没有 Token 时接口不会开放。完整时间参数见 `.env.example`。
+
+2. 更新代码后，在项目目录构建 Bot 与独立监控，不重启 NapCat：
+
+```bash
+cd ~/iceWaG-bot
+docker compose -f docker-compose.yml -f docker-compose.alerts.yml up -d --build --no-deps bot watchdog
+```
+
+此配置不写死监控容器名、不额外开放端口、不挂载 Docker 管理 socket，只挂载监控自己的状态目录；原有 NapCat 容器名和端口修改可以保留。监控环境变量只传入检测及邮件所需字段，不复制落雪等其他密钥。Bot 的内部端口如已自行改动，需要同步修改附加配置中的 `ALERT_HEALTH_URL`。
+
+3. 主动发送一封测试邮件，并执行不发邮件的单次自检：
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.alerts.yml exec watchdog python -m src.offline_watchdog --test-email
+docker compose -f docker-compose.yml -f docker-compose.alerts.yml exec watchdog python -m src.offline_watchdog --check
+docker compose -f docker-compose.yml -f docker-compose.alerts.yml logs --tail=60 -f watchdog
+```
+
+若监控因配置不全未启动，可先用 `docker compose -f docker-compose.yml -f docker-compose.alerts.yml run --rm --no-deps watchdog python -m src.offline_watchdog --test-email` 单独验证邮件配置。修改 `.env` 后需要重新 `up -d` 创建监控容器，单纯 `restart` 不会加载新环境变量。后续更新监控代码也使用带两个 `-f` 的构建命令。停用：`docker compose -f docker-compose.yml -f docker-compose.alerts.yml stop watchdog`。
+
+非 Docker 部署可在另一个进程运行 `python -m src.offline_watchdog --env-file .env`（需要独立保活），默认检测本机 `127.0.0.1:8081`。不要同时运行多个监控实例。
+
+接口依据：[NapCat get_status](https://napcat.apifox.cn/226657083e0)（[实现读取 selfInfo.online](https://github.com/NapNeko/NapCatQQ/blob/main/packages/napcat-onebot/action/system/GetStatus.ts)）、[NoneBot get_app/get_bots](https://nonebot.dev/docs/api)；通知使用 [Python SMTP TLS](https://docs.python.org/3/library/smtplib.html)，附加部署文件遵循 [Compose 合并规则](https://docs.docker.com/compose/how-tos/multiple-compose-files/merge/)。
 
 ### 中二成绩图缓存与清理
 
@@ -317,6 +392,8 @@ CHUNITHM 成绩图会并发预取需要的曲绘和收藏品图片（全局最�
 **玩家收藏品：** B40、score 和已绑定账号的 const 图片会读取游戏存档中的当前头像 `IconID`、称号 `AchievementID`，显示在左上角姓名栏。另会解析段位图标 ID、头像列表及称号达成记录，但不会拿“已拥有”代替“当前装备”。头像素材目前内置第 1～4 期 DAN 共 60 个图标，称号文字使用官方公开定义及游戏称号底图；没有映射的新头像或称号自然留空，不会伪造默认收藏品。未绑定的 const 仍可正常使用。
 
 收藏品与成绩通过同一次只读请求获取，共用 60 秒账号缓存；游戏里更换装备后，缓存过期的下一次查询会更新。没有对应称号文字时会尝试刷新官方公开表，失败则退回本地定义，不影响查分。除生成图片外，不在磁盘保存玩家收藏品记录；公开称号缓存为 `data/takumi_achievements.json`。素材随 `src/` 打包，无需在服务器安装 UnityPy；维护时可运行 `tools/update_takumi_achievements.py` 更新称号快照。
+
+姓名栏头像支持已提取的段位头像，以及 `ja_` 开头的曲绘头像；曲绘头像按游戏内部曲名匹配本地歌曲 ID，和分数卡共用曲绘图集与缓存。未知头像或缺失的曲绘保持留空，不会替换成其他玩家的头像。
 
 ---
 

@@ -1,0 +1,32 @@
+# Optional independent watchdog. No Docker socket, host ports or QQ send API.
+# docker compose -f docker-compose.yml -f docker-compose.alerts.yml up -d --build --no-deps bot watchdog
+services:
+  watchdog:
+    build: .
+    restart: unless-stopped
+    command: ["python", "-m", "src.offline_watchdog"]
+    environment:
+      TZ: Asia/Shanghai
+      PYTHONUNBUFFERED: "1"
+      ALERT_HEALTH_URL: http://bot:8081/internal/health
+      ONEBOT_V11_ACCESS_TOKEN: ${ONEBOT_V11_ACCESS_TOKEN:-}
+      ALERT_SMTP_HOST: ${ALERT_SMTP_HOST:-}
+      ALERT_SMTP_PORT: ${ALERT_SMTP_PORT:-465}
+      ALERT_SMTP_SECURITY: ${ALERT_SMTP_SECURITY:-ssl}
+      ALERT_SMTP_USER: ${ALERT_SMTP_USER:-}
+      ALERT_SMTP_PASSWORD: ${ALERT_SMTP_PASSWORD:-}
+      ALERT_EMAIL_FROM: ${ALERT_EMAIL_FROM:-}
+      ALERT_EMAIL_TO: ${ALERT_EMAIL_TO:-}
+      ALERT_INSTANCE_NAME: ${ALERT_INSTANCE_NAME:-iceWaG-bot}
+      ALERT_CHECK_INTERVAL: ${ALERT_CHECK_INTERVAL:-30}
+      ALERT_OFFLINE_SECONDS: ${ALERT_OFFLINE_SECONDS:-120}
+      ALERT_RECOVERY_SECONDS: ${ALERT_RECOVERY_SECONDS:-60}
+      ALERT_STARTUP_GRACE: ${ALERT_STARTUP_GRACE:-120}
+      ALERT_RETRY_SECONDS: ${ALERT_RETRY_SECONDS:-300}
+    volumes:
+      - ./data/watchdog:/app/data/watchdog
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "2"

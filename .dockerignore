@@ -6,6 +6,7 @@ __pycache__/
 NapCat/
 test_local/
 .env
+.server-update/
 start_all.bat
 README.md
 

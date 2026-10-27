@@ -17,6 +17,8 @@ import time
 import requests
 from PIL import Image
 
+from src.takumi_jackets import load_jacket_avatar
+
 ROOT = Path(__file__).resolve().parents[1]
 ASSETS = ROOT / "src/plugins/takumi_b40/collection_assets"
 ACHIEVEMENTS_PATH = ASSETS / "achievements.json"
@@ -199,8 +201,12 @@ def _icon_atlas():
 
 
 def load_icon(icon_id):
+    if not isinstance(icon_id, str):
+        return None
+    if icon_id.startswith("ja_"):
+        return load_jacket_avatar(icon_id)
     atlas = _icon_atlas()
-    if atlas is None or not isinstance(icon_id, str):
+    if atlas is None:
         return None
     image, icons, cell, columns = atlas
     index = icons.get(icon_id)
